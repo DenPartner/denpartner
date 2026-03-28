@@ -36,7 +36,7 @@ export default function Footer() {
               className="flex justify-between items-center cursor-pointer md:cursor-default"
             >
               <h3 className="font-semibold text-lg border-b border-white/20 pb-2 w-full">
-                Quick Links
+                Explore
               </h3>
               <span className="md:hidden ml-2">
                 {openQuick ? "▲" : "▼"}
@@ -45,9 +45,15 @@ export default function Footer() {
 
             <ul className={`space-y-2 text-sm text-white/80 mt-3 ${openQuick ? "block" : "hidden"} md:block`}>
               
-              <li>
-                <Link to="/" className="hover:text-gold">Home</Link>
-              </li>
+             <li>
+  <Link
+    to="/"
+    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+    className="hover:text-gold"
+  >
+    Home
+  </Link>
+</li>
 
               <li>
                 <span onClick={handleHowClick} className="hover:text-gold cursor-pointer">
@@ -69,7 +75,7 @@ export default function Footer() {
               className="flex justify-between items-center cursor-pointer md:cursor-default"
             >
               <h3 className="font-semibold text-lg border-b border-white/20 pb-2 w-full">
-                Resources
+               Learn
               </h3>
               <span className="md:hidden ml-2">
                 {openResources ? "▲" : "▼"}
@@ -100,7 +106,7 @@ export default function Footer() {
               className="flex justify-between items-center cursor-pointer md:cursor-default"
             >
               <h3 className="font-semibold text-lg border-b border-white/20 pb-2 w-full">
-                Support
+                Help & Policies
               </h3>
               <span className="md:hidden ml-2">
                 {openSupport ? "▲" : "▼"}
@@ -130,7 +136,7 @@ export default function Footer() {
             </h3>
            <div className="flex gap-4 mt-3">
   <a
-    href="https://www.instagram.com/startwithme1597?igsh=OWJmdzBpdWRtNjNq"
+    href="https://www.instagram.com/denpartnerdotcom?igsh=OWJmdzBpdWRtNjNq"
     target="_blank"
     rel="noopener noreferrer"
     className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 text-white hover:scale-110 transition"

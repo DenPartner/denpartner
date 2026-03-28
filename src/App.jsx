@@ -7,7 +7,8 @@ import AdminRoute from "./components/AdminRoute";
 import { Toaster } from "react-hot-toast";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "./firebase";
-import toast from "react-hot-toast"; // ✅ ADDED
+import toast from "react-hot-toast"; 
+import ScrollToTop from "./components/ScrollToTop";
 
 import Navbar from "./components/Navbar";
 import UserNavbar from "./components/UserNavbar";
@@ -105,7 +106,7 @@ useEffect(() => {
 
   return (
     <div className="w-full min-h-screen overflow-x-hidden">
-
+<ScrollToTop />
       {/* ✅ FIXED NAVBAR */}
       {!location.pathname.startsWith("/admin") && (
         isUserPage && user ? (

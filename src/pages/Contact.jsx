@@ -1,31 +1,68 @@
-export default function Contact() {
+import React from "react";
+import { Mail, Instagram, Phone } from "lucide-react";
+
+const Contact = () => {
   return (
-    <div className="min-h-screen bg-[#F8F5F0] pt-20 px-4 md:px-6">
-
-      <div className="max-w-3xl mx-auto text-center">
-
-        <h1 className="text-3xl font-bold mb-6">
+    <div className="min-h-screen bg-[#F8F5F0] px-6 py-12">
+      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm p-8">
+        <h1 className="text-3xl font-bold text-center mb-8 text-gray-900">
           Contact Us
         </h1>
 
-        <p className="text-textSub mb-6">
-          Have questions or need support? We're here to help you.
+        <p className="text-gray-600 text-center mb-10">
+          We’re here to help you with any questions, support, or partnership
+          queries related to DenPartner.
         </p>
 
-        <div className="space-y-4 text-textSub">
+        <div className="space-y-6">
+          {/* Email */}
+          <div className="flex items-center gap-4 p-4 rounded-xl border border-gray-200">
+            <Mail className="w-6 h-6 text-blue-600 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="font-semibold text-gray-900">Email Support</p>
+              <a
+                href="mailto:support@denpartner.com"
+                className="text-gray-600 hover:text-blue-600 break-all"
+              >
+                support@denpartner.com
+              </a>
+            </div>
+          </div>
 
-          <p>
-            📧 Email: <span className="font-semibold text-black">support@denpartner.com</span>
-          </p>
+          {/* Instagram */}
+          <div className="flex items-center gap-4 p-4 rounded-xl border border-gray-200">
+            <Instagram className="w-6 h-6 text-pink-600 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="font-semibold text-gray-900">Instagram</p>
+              <a
+                href="https://www.instagram.com/denpartnerdotcom?igsh=OWJmdzBpdWRtNjNq"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-pink-600 break-all"
+              >
+                @denpartnerdotcom
+              </a>
+            </div>
+          </div>
 
-          <p>
-            📱 You can also reach us through our social media platforms for quick support.
-          </p>
-
+          {/* Support Hours */}
+          <div className="flex items-center gap-4 p-4 rounded-xl border border-gray-200">
+            <Phone className="w-6 h-6 text-green-600 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="font-semibold text-gray-900">Support Hours</p>
+              <p className="text-gray-600">
+                Monday - Saturday | 10 AM - 7 PM
+              </p>
+            </div>
+          </div>
         </div>
 
+        <div className="mt-10 text-center text-sm text-gray-500">
+          We usually respond within 24 hours.
+        </div>
       </div>
-
     </div>
   );
-}
+};
+
+export default Contact;

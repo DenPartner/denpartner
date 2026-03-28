@@ -164,7 +164,7 @@ export default function Home() {
       Top Brands
     </h2>
 
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-6 items-center">
+   <div className="grid grid-cols-2 md:grid-cols-3 gap-6 max-w-4xl mx-auto items-center">
 
       <div className="bg-white p-6 rounded-lg shadow-sm">
         <img src="/brands/flipkart.png" className="h-30 mx-auto" />
@@ -174,16 +174,18 @@ export default function Home() {
         <img src="/brands/amazon.png" className="h-30 mx-auto" />
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-sm">
-        <img src="/brands/myntra.png" className="h-30 mx-auto" />
-      </div>
-
-      <div className="bg-white p-6 rounded-lg shadow-sm">
+            <div className="bg-white p-6 rounded-lg shadow-sm">
         <img src="/brands/ajio.png" className="h-30 mx-auto" />
+      </div>
+       <div className="bg-white p-6 rounded-lg shadow-sm">
+        <img src="/brands/croma.png" className="h-30 mx-auto" />
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-sm">
         <img src="/brands/tata.png" className="h-30 mx-auto" />
+      </div>
+      <div className="bg-white p-6 rounded-lg shadow-sm">
+        <img src="/brands/myntra.png" className="h-30 mx-auto" />
       </div>
 
     </div>
