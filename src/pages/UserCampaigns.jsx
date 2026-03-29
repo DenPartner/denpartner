@@ -126,14 +126,26 @@ ${link}`;
     const link = generateLink(item);
     if (!link) return;
 
-    const message = `🔥 ${item.title}
-💰 Price: ₹${item.price}
-🎁 ${item.offer ? `Offer: ${item.offer}` : "Best Deal"}
+ const message = `🔥 *${item.title}*
+
+💰 Price: ₹${finalPrice}
+${item.offer ? `🏷 ${item.offer}% OFF` : ""}
 
 👉 Buy Now:
 ${link}`;
 
-    window.location.href = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    if (navigator.share) {
+  navigator.share({
+    title: item.title,
+    text: message,
+    url: link,
+  });
+} else {
+  window.open(
+    `https://wa.me/?text=${encodeURIComponent(message)}`,
+    "_blank"
+  );
+}
   };
 
   const handleShareAll = () => {
