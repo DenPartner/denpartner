@@ -133,28 +133,31 @@ ${link}`;
       return;
     }
 
-const handleShareAll = () => {
-  if (selected.length === 0) {
-    toast("Select at least one product");
-    return;
+const handleShare = (item) => {
+  const link = generateLink(item);
+  if (!link) return;
+
+  const message = `🔥 ${item.title}
+💰 Price: ₹${item.price}
+🎁 ${item.offer ? `Offer: ${item.offer}` : "Best Deal"}
+
+👉 Buy Now: ${link}`;
+
+  const isMobile = /Android|iPhone/i.test(navigator.userAgent);
+
+  // ✅ If mobile → use native share (best UX)
+  if (navigator.share && isMobile) {
+    navigator.share({
+      title: item.title,
+      text: message,
+    });
+  } else {
+    // ✅ Desktop → open WhatsApp (best conversion)
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
   }
-
-  const messages = campaigns
-    .filter((c) => selected.includes(c.id))
-    .map((item) => {
-      const link = generateLink(item);
-
-      return `🔥 *${item.title}*
-💰 ₹${item.price}
-🎁 ${item.offer || "Best Deal"}
-
-👉 ${link}`;
-    })
-    .join("\n\n━━━━━━━━━━━━━━━\n\n");
-
-  navigator.clipboard.writeText(messages);
-  toast("All copied!");
-};}
+};
+}
   return (
     <div className="bg-[#F3F4F6] min-h-screen">
       <div className="max-w-6xl mx-auto p-4 md:p-6 pb-20">
