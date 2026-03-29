@@ -103,21 +103,22 @@ export default function UserCampaigns() {
     toast("Link copied 🔗");
   };
 
-  // ✅ SINGLE SHARE (NO DOUBLE LINK)
+  // ✅ SINGLE SHARE (WHATSAPP)
   const handleShare = (item) => {
     const link = generateLink(item);
     if (!link) return;
 
     const message = `🔥 ${item.title}
-💰 ₹${item.price}
+💰 Price: ₹${item.price}
 🎁 ${item.offer ? `Offer: ${item.offer}` : "Best Deal"}
 
+👉 Buy Now:
 ${link}`;
 
     window.location.href = `https://wa.me/?text=${encodeURIComponent(message)}`;
   };
 
-  // ✅ SHARE SELECTED (FIXED)
+  // ✅ SHARE SELECTED (COPY ONLY)
   const handleShareAll = () => {
     if (selected.length === 0) {
       toast("Select at least one product");
@@ -126,28 +127,25 @@ ${link}`;
 
     let message = "";
 
-    selected.forEach((id) => {
+    selected.forEach((id, index) => {
       const item = campaigns.find((c) => c.id === id);
       if (!item) return;
 
       const link = generateLink(item);
 
-      message += `🔥 ${item.title}
-💰 ₹${item.price}
+      message += `${index + 1}. ${item.title}
+💰 Price: ₹${item.price}
 🎁 ${item.offer ? `Offer: ${item.offer}` : "Best Deal"}
 
+👉 Buy Now:
 ${link}
-
-----------------------
 
 `;
     });
 
     navigator.clipboard.writeText(message);
 
-    window.open("https://wa.me/", "_blank");
-
-    toast("Copied! Paste in WhatsApp ✅");
+    toast("Copied! Paste anywhere ✅");
   };
 
   return (
