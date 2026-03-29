@@ -103,24 +103,21 @@ export default function UserCampaigns() {
     toast("Link copied 🔗");
   };
 
-  // ✅ FINAL CLEAN SHARE (NO DUPLICATE ISSUE)
+  // ✅ SINGLE SHARE (NO DOUBLE LINK)
   const handleShare = (item) => {
     const link = generateLink(item);
     if (!link) return;
 
     const message = `🔥 ${item.title}
-💰 Price: ₹${item.price}
+💰 ₹${item.price}
 🎁 ${item.offer ? `Offer: ${item.offer}` : "Best Deal"}
 
-👉 Buy Now:
 ${link}`;
 
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-
-    window.open(whatsappUrl, "_blank");
+    window.location.href = `https://wa.me/?text=${encodeURIComponent(message)}`;
   };
 
-  // ✅ SHARE MULTIPLE PRODUCTS
+  // ✅ SHARE SELECTED (FIXED)
   const handleShareAll = () => {
     if (selected.length === 0) {
       toast("Select at least one product");
@@ -136,10 +133,9 @@ ${link}`;
       const link = generateLink(item);
 
       message += `🔥 ${item.title}
-💰 Price: ₹${item.price}
+💰 ₹${item.price}
 🎁 ${item.offer ? `Offer: ${item.offer}` : "Best Deal"}
 
-👉 Buy Now:
 ${link}
 
 ----------------------
@@ -147,9 +143,11 @@ ${link}
 `;
     });
 
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    navigator.clipboard.writeText(message);
 
-    window.open(whatsappUrl, "_blank");
+    window.open("https://wa.me/", "_blank");
+
+    toast("Copied! Paste in WhatsApp ✅");
   };
 
   return (
