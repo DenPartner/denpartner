@@ -15,6 +15,7 @@ export default function AdminCampaigns() {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [offer, setOffer] = useState("");
+  const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [url, setUrl] = useState("");
   const [category, setCategory] = useState("");
@@ -67,6 +68,7 @@ export default function AdminCampaigns() {
       title,
       price: Number(price),
       offer,
+      description,
       image,
       url,
       category,
@@ -82,6 +84,7 @@ export default function AdminCampaigns() {
     setTitle("");
     setPrice("");
     setOffer("");
+     setDescription("");
     setImage("");
     setUrl("");
     setCategory("");
@@ -129,6 +132,7 @@ export default function AdminCampaigns() {
         <input placeholder="Title" value={title} onChange={e=>setTitle(e.target.value)} style={input}/>
         <input placeholder="Price" value={price} onChange={e=>setPrice(e.target.value)} style={input}/>
         <input placeholder="Offer" value={offer} onChange={e=>setOffer(e.target.value)} style={input}/>
+        <input placeholder="Description" value={description} onChange={e=>setOffer(e.target.value)} style={input}/>
         <input placeholder="Image URL" value={image} onChange={e=>setImage(e.target.value)} style={input}/>
         <input placeholder="Product URL" value={url} onChange={e=>setUrl(e.target.value)} style={input}/>
 
