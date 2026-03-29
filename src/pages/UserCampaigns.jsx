@@ -78,7 +78,7 @@ export default function UserCampaigns() {
     );
   } else if (sort === "oldest") {
     filteredCampaigns.sort(
-      (a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0)
+      (a, b) => (a.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
     );
   }
 
@@ -96,19 +96,19 @@ export default function UserCampaigns() {
     return `${window.location.origin}/r/${item.id}-${userId}-${clickId}`;
   };
 
- const handleCopy = (item) => {
-  const link = generateLink(item);
-  if (!link) return;
+  const handleCopy = (item) => {
+    const link = generateLink(item);
+    if (!link) return;
 
-  let finalPrice = item.price;
+    let finalPrice = item.price;
 
-  if (item.offer) {
-    finalPrice = Math.round(
-      item.price - (item.price * item.offer) / 100
-    );
-  }
+    if (item.offer) {
+      finalPrice = Math.round(
+        item.price - (item.price * item.offer) / 100
+      );
+    }
 
-  const message = `🔥 ${item.title}
+    const message = `🔥 ${item.title}
 
 💰 Price: ₹${finalPrice}
 ${item.offer ? `🏷 ${item.offer}% OFF` : ""}
@@ -116,17 +116,26 @@ ${item.offer ? `🏷 ${item.offer}% OFF` : ""}
 👉 Buy Now:
 ${link}`;
 
-  navigator.clipboard.writeText(message);
+    navigator.clipboard.writeText(message);
 
-  toast("Message copied 🚀 Paste anywhere!");
-};
+    toast("Message copied 🚀 Paste anywhere!");
+  };
 
+  // ✅ FIXED FULL SHARE FUNCTION
   const handleShare = (item) => {
 
     const link = generateLink(item);
     if (!link) return;
 
- const message = `🔥 *${item.title}*
+    let finalPrice = item.price;
+
+    if (item.offer) {
+      finalPrice = Math.round(
+        item.price - (item.price * item.offer) / 100
+      );
+    }
+
+    const message = `🔥 *${item.title}*
 
 💰 Price: ₹${finalPrice}
 ${item.offer ? `🏷 ${item.offer}% OFF` : ""}
@@ -135,17 +144,19 @@ ${item.offer ? `🏷 ${item.offer}% OFF` : ""}
 ${link}`;
 
     if (navigator.share) {
-  navigator.share({
-    title: item.title,
-    text: message,
-    url: link,
-  });
-} else {
-  window.open(
-    `https://wa.me/?text=${encodeURIComponent(message)}`,
-    "_blank"
-  );
-}
+      navigator
+        .share({
+          title: item.title,
+          text: message,
+          url: link,
+        })
+        .catch(() => {});
+    } else {
+      window.open(
+        `https://wa.me/?text=${encodeURIComponent(message)}`,
+        "_blank"
+      );
+    }
   };
 
   const handleShareAll = () => {
@@ -231,9 +242,9 @@ ${link}
             let earn = 0;
             let finalPrice = item.price;
 
-if (item.offer) {
-  finalPrice = Math.round(item.price - (item.price * item.offer) / 100);
-}
+            if (item.offer) {
+              finalPrice = Math.round(item.price - (item.price * item.offer) / 100);
+            }
 
             if (item.commissionType === "percentage") {
               earn = Math.round((item.price * item.commissionValue) / 100);
@@ -243,28 +254,6 @@ if (item.offer) {
 
             return (
               <div key={item.id} className="bg-white rounded-xl shadow p-4 relative">
-                {/* 🔥 BADGES */}
-<div className="absolute top-3 left-3 flex gap-1 flex-wrap z-10">
-
-  {item.offer >= 20 && (
-    <span className="bg-red-500 text-white text-[10px] px-2 py-1 rounded">
-      🔥 Hot
-    </span>
-  )}
-
-  {item.offer > 0 && item.offer < 20 && (
-    <span className="bg-orange-500 text-white text-[10px] px-2 py-1 rounded">
-      ⚡ Offer
-    </span>
-  )}
-
-  {item.commissionValue >= 10 && (
-    <span className="bg-green-600 text-white text-[10px] px-2 py-1 rounded">
-      💰 High Earn
-    </span>
-  )}
-
-</div>
 
                 <input
                   type="checkbox"
@@ -273,52 +262,31 @@ if (item.offer) {
                   className="absolute top-3 right-3 z-20"
                 />
 
-               <div className="relative w-full h-40 bg-gray-100 rounded-md overflow-hidden flex items-center justify-center">
-
-  {item.offer > 0 && (
-    <span className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
-      {item.offer}% OFF
-    </span>
-  )}
-
-  <img
-    src={item.image}
-    alt={item.title}
-    className="max-h-full max-w-full object-contain"
-  />
-</div>
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-40 object-contain rounded-md"
+                />
 
                 <h3 className="font-semibold mt-2 mb-1">{item.title}</h3>
-                {item.description && (
-  <p className="text-sm text-gray-600 mb-1">
-    {item.description}
-  </p>
-)}
 
                 <div className="mb-1">
-  {item.offer ? (
-    <>
-      <p className="text-gray-400 line-through text-sm">
-        ₹{item.price}
-      </p>
-      <p className="text-green-600 font-bold text-lg">
-        ₹{finalPrice}
-      </p>
-    </>
-  ) : (
-    <p className="text-lg font-bold">₹{item.price}</p>
-  )}
-</div>
+                  {item.offer ? (
+                    <>
+                      <p className="text-gray-400 line-through text-sm">
+                        ₹{item.price}
+                      </p>
+                      <p className="text-green-600 font-bold text-lg">
+                        ₹{finalPrice}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-lg font-bold">₹{item.price}</p>
+                  )}
+                </div>
 
-                <p className="text-green-600 text-sm mb-1 font-semibold">
-                  {item.offer ? `${item.offer}% OFF` : ""}
-                </p>
-
-                {/* ✅ ONLY CHANGE HERE */}
                 <p className="text-primary font-bold mb-3">
                   {item.earnType === "order" && `Earn upto ${item.commissionValue}% (per order)`}
-                  {item.earnType === "click" && `Earn upto ₹${earn} (per click)`}
-                  {item.earnType === "install" && `Earn upto ₹${earn} (per install)`}
                 </p>
 
                 <div className="flex gap-2">
