@@ -80,6 +80,7 @@ const [editData, setEditData] = useState({});
         commissionType,
         commissionValue: Number(commissionValue),
         earnType,
+        updatedAt: new Date()
       });
 
       toast("Campaign updated ✏️");
@@ -266,7 +267,12 @@ const [editData, setEditData] = useState({});
 
 <p style={subText}>{c.category}</p>
     <p style={subText}>{c.commissionValue} {c.commissionType} / {c.earnType}</p>
-    <p style={subText}>Added: {date}</p>
+    <p style={subText}>
+  {c.updatedAt ? "Updated: " : "Added: "}
+  {c.updatedAt
+    ? new Date(c.updatedAt.seconds * 1000).toLocaleString()
+    : date}
+</p>
 
     {/* ✅ FULL WIDTH BOTTOM ROW */}
     <div style={bottomRow}>
@@ -300,16 +306,7 @@ const [editData, setEditData] = useState({});
     Edit
   </button>
 
-  {editId === c.id && (
-    <button
-      onClick={()=>handleSave(c.id)}
-      style={btnPrimary}
-    >
-      Save
-    </button>
-  )}
-
-  <button onClick={()=>toggleStatus(c)} style={btnGold}>
+   <button onClick={()=>toggleStatus(c)} style={btnGold}>
     {c.status === "active" ? "Pause" : "Unpause"}
   </button>
 
