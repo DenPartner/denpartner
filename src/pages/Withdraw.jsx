@@ -94,11 +94,7 @@ export default function Withdraw() {
   ) => {
     const q = query(
       collection(db, "users"),
-      where(
-        "bankDetails.accountNumber",
-        "==",
-        accountNumber
-      )
+      where("bankDetails.accountNumber", "==", accountNumber)
     );
 
     const snap = await getDocs(q);
@@ -114,15 +110,27 @@ export default function Withdraw() {
     return exists;
   };
 
+  // ✅ UPDATED BANK VALIDATION
   const saveBank = async () => {
     const user = auth.currentUser;
     if (!user) return;
 
-    if (
-      !bank.accountNumber ||
-      !bank.ifsc ||
-      !bank.name
-    ) {
+    if (!/^[a-zA-Z\s]+$/.test(bank.name)) {
+      toast("Name should contain only letters");
+      return;
+    }
+
+    if (!/^[0-9]+$/.test(bank.accountNumber)) {
+      toast("Account number should be digits only");
+      return;
+    }
+
+    if (!/^[A-Za-z0-9]+$/.test(bank.ifsc)) {
+      toast("IFSC should be letters & numbers only");
+      return;
+    }
+
+    if (!bank.accountNumber || !bank.ifsc || !bank.name) {
       toast("Please fill all bank details");
       return;
     }
@@ -133,9 +141,7 @@ export default function Withdraw() {
     );
 
     if (exists) {
-      toast(
-        "This bank account is already used by another user"
-      );
+      toast("This bank account is already used by another user");
       return;
     }
 
@@ -152,44 +158,37 @@ export default function Withdraw() {
     const user = auth.currentUser;
 
     if (!user || !userData) return;
-
     if (isSubmitting) return;
 
-    // ✅ email verify check
+    // ✅ VERIFY CHECK
     if (!user.emailVerified) {
       toast("Please verify your email first");
       navigate("/my-account");
       return;
     }
 
+    const amt = Number(amount);
+
+    // ✅ VALIDATIONS BEFORE DB
+    if (!amt || amt < 10) {
+      toast("Minimum withdrawal is ₹10");
+      return;
+    }
+
+    if (amt > wallet) {
+      toast("Insufficient balance");
+      return;
+    }
+
+    if (!bank.accountNumber || !bank.ifsc || !bank.name) {
+      toast("Please add bank details");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const amt = Number(amount);
-
-      if (!amt || amt < 10) {
-        toast("Minimum withdrawal is ₹10");
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (amt > wallet) {
-        toast("Insufficient balance");
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (
-        !bank.accountNumber ||
-        !bank.ifsc ||
-        !bank.name
-      ) {
-        toast("Please add bank details");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // ✅ LIVE DB CHECK FOR DAILY LIMIT
+      // ✅ DAILY LIMIT STRICT (MAX 3)
       const latestQuery = query(
         collection(db, "withdrawRequests"),
         where("userId", "==", userData.userId)
@@ -199,46 +198,37 @@ export default function Withdraw() {
 
       const today = new Date().toDateString();
 
-      const todayCount = latestSnap.docs.filter(
-        (docSnap) => {
-          const data = docSnap.data();
+      const todayCount = latestSnap.docs.filter((docSnap) => {
+        const data = docSnap.data();
+        if (!data.createdAt) return false;
 
-          if (!data.createdAt) return false;
+        const reqDate = new Date(
+          data.createdAt.seconds * 1000
+        ).toDateString();
 
-          const reqDate = new Date(
-            data.createdAt.seconds * 1000
-          ).toDateString();
-
-          return reqDate === today;
-        }
-      ).length;
+        return reqDate === today;
+      }).length;
 
       if (todayCount >= 3) {
-        toast(
-          "Daily withdrawal limit reached (Max 3)"
-        );
+        toast("Max 3 withdrawals allowed per day");
         setIsSubmitting(false);
         return;
       }
 
-      // ✅ CREATE REQUEST
-      await addDoc(
-        collection(db, "withdrawRequests"),
-        {
-          userId: userData.userId,
-          uid: user.uid,
-          amount: amt,
-          bank,
-          status: "pending",
-          createdAt: serverTimestamp(),
-        }
-      );
+      // ✅ CREATE REQUEST ONLY AFTER ALL CHECKS PASS
+      await addDoc(collection(db, "withdrawRequests"), {
+        userId: userData.userId,
+        uid: user.uid,
+        amount: amt,
+        bank,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
 
-      // ✅ NOTIFICATION
       await addDoc(collection(db, "notifications"), {
         userId: user.uid,
         title: "Withdraw Requested 💸",
-        message: `Your withdraw request of ₹${amt} is submitted and under review.`,
+        message: `Your withdraw request of ₹${amt} is submitted.`,
         type: "withdraw",
         createdAt: serverTimestamp(),
       });
@@ -256,7 +246,7 @@ export default function Withdraw() {
 
       toast("Withdraw request submitted ✅");
 
-      // ✅ REFRESH HISTORY
+      // refresh history
       const historyQuery = query(
         collection(db, "withdrawRequests"),
         where("userId", "==", userData.userId)
@@ -264,25 +254,20 @@ export default function Withdraw() {
 
       const historySnap = await getDocs(historyQuery);
 
-      let historyData = historySnap.docs.map(
-        (doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })
-      );
+      let historyData = historySnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
       historyData.sort((a, b) => {
         if (!a.createdAt || !b.createdAt) return 0;
-        return (
-          b.createdAt.seconds -
-          a.createdAt.seconds
-        );
+        return b.createdAt.seconds - a.createdAt.seconds;
       });
 
       setHistory(historyData);
     } catch (err) {
       console.error(err);
-      toast("Withdraw failed");
+      toast("Withdraw failed ❌");
     }
 
     setIsSubmitting(false);
@@ -391,10 +376,7 @@ export default function Withdraw() {
           </h3>
 
           {history.map((item) => (
-            <div
-              key={item.id}
-              className="border-b py-3"
-            >
+            <div key={item.id} className="border-b py-3">
               <div className="flex justify-between mb-1">
                 <span className="font-semibold">
                   ₹{item.amount}

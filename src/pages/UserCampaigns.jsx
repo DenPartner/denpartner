@@ -54,7 +54,7 @@ export default function UserCampaigns() {
     fetchCampaigns();
   }, []);
 
-  let filteredCampaigns = campaigns;
+  let filteredCampaigns = [...campaigns];
 
   if (category !== "All") {
     filteredCampaigns = filteredCampaigns.filter(
@@ -68,10 +68,19 @@ export default function UserCampaigns() {
     );
   }
 
+  // ✅ UPDATED SORT LOGIC (price + latest)
   if (sort === "low") {
     filteredCampaigns.sort((a, b) => a.price - b.price);
   } else if (sort === "high") {
     filteredCampaigns.sort((a, b) => b.price - a.price);
+  } else if (sort === "latest") {
+    filteredCampaigns.sort(
+      (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
+    );
+  } else if (sort === "oldest") {
+    filteredCampaigns.sort(
+      (a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0)
+    );
   }
 
   const toggleSelect = (id) => {
@@ -128,11 +137,13 @@ ${link}`;
       .filter((c) => selected.includes(c.id))
       .map((item) => {
         const link = generateLink(item);
-        return `🔥 ${item.title}
+        return `🔥 *${item.title}*
 💰 ₹${item.price}
+🎁 ${item.offer || "Deal"}
+
 👉 ${link}`;
       })
-      .join("\n\n");
+      .join("\n\n------------------\n\n");
 
     navigator.clipboard.writeText(messages);
     toast("All copied!");
@@ -152,12 +163,13 @@ ${link}`;
           className="w-full mb-3 p-2 border rounded-md"
         />
 
+        {/* ✅ ALL FILTERS IN ONE LINE */}
         <div className="flex gap-2 mb-4">
 
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="p-2 border rounded-md w-1/2"
+            className="p-2 border rounded-md flex-1"
           >
             {categories.map((c, i) => (
               <option key={i}>{c}</option>
@@ -167,9 +179,11 @@ ${link}`;
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="p-2 border rounded-md w-1/2"
+            className="p-2 border rounded-md flex-1"
           >
             <option value="">Sort</option>
+            <option value="latest">Latest First</option>
+            <option value="oldest">Oldest First</option>
             <option value="low">Price Low → High</option>
             <option value="high">Price High → Low</option>
           </select>
@@ -221,7 +235,6 @@ ${link}`;
                   {item.offer ? `Offer ${item.offer}%` : ""}
                 </p>
 
-                {/* ✅ FIX ADDED HERE */}
                 <p className="text-primary font-bold mb-3">
                   Earn upto ₹{earn}{" "}
                   {item.earnType === "order" && "(per order)"}

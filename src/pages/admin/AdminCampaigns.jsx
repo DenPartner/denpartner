@@ -10,7 +10,6 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 
-
 export default function AdminCampaigns() {
 
   const [title, setTitle] = useState("");
@@ -29,6 +28,9 @@ export default function AdminCampaigns() {
   const [categories, setCategories] = useState([]);
   const [newCategory, setNewCategory] = useState("");
 
+  const [filterCategory, setFilterCategory] = useState("All");
+  const [sort, setSort] = useState("");
+
   const fetchCampaigns = async () => {
     const snap = await getDocs(collection(db, "campaigns"));
 
@@ -36,6 +38,11 @@ export default function AdminCampaigns() {
       id: d.id,
       ...d.data(),
     }));
+
+    data.sort((a, b) => {
+      if (!a.createdAt || !b.createdAt) return 0;
+      return new Date(b.createdAt.seconds * 1000) - new Date(a.createdAt.seconds * 1000);
+    });
 
     setCampaigns(data);
 
@@ -100,12 +107,23 @@ export default function AdminCampaigns() {
     fetchCampaigns();
   };
 
+  let filtered = campaigns;
+
+  if (filterCategory !== "All") {
+    filtered = filtered.filter(c => c.category === filterCategory);
+  }
+
+  if (sort === "low") {
+    filtered = filtered.sort((a, b) => a.price - b.price);
+  } else if (sort === "high") {
+    filtered = filtered.sort((a, b) => b.price - a.price);
+  }
+
   return (
     <div style={page}>
 
       <h2 style={titleStyle}>Add Campaign</h2>
 
-      {/* FORM */}
       <div style={cardStyle}>
 
         <input placeholder="Title" value={title} onChange={e=>setTitle(e.target.value)} style={input}/>
@@ -114,7 +132,6 @@ export default function AdminCampaigns() {
         <input placeholder="Image URL" value={image} onChange={e=>setImage(e.target.value)} style={input}/>
         <input placeholder="Product URL" value={url} onChange={e=>setUrl(e.target.value)} style={input}/>
 
-        {/* CATEGORY */}
         <div style={rowWrap}>
 
           <select value={category} onChange={(e)=>setCategory(e.target.value)} style={{...input, flex:1}}>
@@ -149,151 +166,185 @@ export default function AdminCampaigns() {
         <button onClick={handleAdd} style={btnPrimary}>Add Campaign</button>
       </div>
 
-      {/* LIST */}
+      <div style={{  marginTop:20, display:"flex",  gap:10,  flexWrap:"wrap"}}>
+        <select value={filterCategory} onChange={(e)=>setFilterCategory(e.target.value)} style={input}>
+          <option value="All">All Categories</option>
+          {categories.map((c,i)=>(<option key={i}>{c}</option>))}
+        </select>
+
+        <select value={sort} onChange={(e)=>setSort(e.target.value)} style={input}>
+          <option value="">Sort</option>
+          <option value="low">Price Low → High</option>
+          <option value="high">Price High → Low</option>
+        </select>
+      </div>
+
       <h3 style={{ marginTop: 30 }}>All Campaigns</h3>
 
-      {campaigns.map((c) => (
-        <div key={c.id} style={listCard}>
+      {filtered.map((c) => {
 
-          {/* LEFT */}
-          <div style={leftWrap}>
-            <img src={c.image} alt="" style={img}/>
+        let date = "";
+        if (c.createdAt) {
+          const d = new Date(c.createdAt.seconds * 1000);
+          date = d.toLocaleString();
+        }
 
-            <div style={{flex:1}}>
-              <h4 style={{fontWeight:600}}>{c.title}</h4>
-              <p>₹{c.price}</p>
-              <p style={subText}>{c.category}</p>
-              <p style={subText}>{c.commissionValue} {c.commissionType} / {c.earnType}</p>
+        return (
+          <div key={c.id} style={listCard}>
 
-              <span style={status(c.status)}>
-                {c.status}
-              </span>
-            </div>
+           <div style={leftWrap}>
+  <img src={c.image} alt="" style={img}/>
+
+  <div style={{flex:1, display:"flex", flexDirection:"column", gap:4}}>
+    <h4 style={{fontWeight:600}}>{c.title}</h4>
+    <p>₹{c.price}</p>
+    <p style={subText}>{c.category}</p>
+    <p style={subText}>{c.commissionValue} {c.commissionType} / {c.earnType}</p>
+    <p style={subText}>Added: {date}</p>
+
+    {/* ✅ FULL WIDTH BOTTOM ROW */}
+    <div style={bottomRow}>
+      <span style={status(c.status)}>
+        {c.status}
+      </span>
+
+      <div style={btnWrap}>
+        <button onClick={()=>toggleStatus(c)} style={btnGold}>
+          {c.status === "active" ? "Pause" : "Unpause"}
+        </button>
+
+        <button onClick={()=>handleDelete(c.id)} style={btnDanger}>
+          Delete
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
           </div>
-
-          {/* RIGHT BUTTONS */}
-          <div style={btnWrap}>
-            <button onClick={()=>toggleStatus(c)} style={btnGold}>
-              {c.status === "active" ? "Pause" : "Unpause"}
-            </button>
-
-            <button onClick={()=>handleDelete(c.id)} style={btnDanger}>
-              Delete
-            </button>
-          </div>
-
-        </div>
-      ))}
+        );
+      })}
 
     </div>
   );
 }
 
-/* 🎨 FIXED STYLES */
+/* ✅ ADDED STYLES (FIX) */
 
 const page = {
-  width:"100%",
-  padding:"12px",
-  background:"#F8F9FA",
-  minHeight:"100vh",
-  boxSizing:"border-box"
+  width: "100%",
+  padding: "12px",
+  background: "#F8F9FA",
+  minHeight: "100vh",
+  boxSizing: "border-box"
 };
 
-const titleStyle = {
-  fontSize:22,
-  fontWeight:700,
-  color:"#14532D"
-};
+const titleStyle = { fontSize: 22, fontWeight: 600 };
 
 const cardStyle = {
-  background:"#fff",
-  padding:16,
-  borderRadius:12,
-  marginTop:15,
-  boxShadow:"0 4px 12px rgba(0,0,0,0.08)",
-  display:"flex",
-  flexDirection:"column",
-  gap:10
-};
-
-const listCard = {
-  background:"#fff",
-  padding:12,
-  borderRadius:12,
-  marginBottom:12,
-  display:"flex",
-  flexDirection:"column",
-  gap:10,
-  boxShadow:"0 2px 8px rgba(0,0,0,0.06)"
-};
-
-const leftWrap = {
-  display:"flex",
-  gap:10,
-  alignItems:"flex-start"
-};
-
-const img = {
-  width:70,
-  height:70,
-  objectFit:"cover",
-  borderRadius:10
-};
-
-const btnWrap = {
-  display:"flex",
-  flexWrap:"wrap",
-  gap:8
-};
-
-const rowWrap = {
-  display:"flex",
-  flexWrap:"wrap",
-  gap:8
+  background: "#fff",
+  padding: 15,
+  borderRadius: 10,
+  display: "flex",
+  flexDirection: "column",
+  gap: 10
 };
 
 const input = {
-  padding:10,
-  border:"1px solid #ccc",
-  borderRadius:6,
-  width:"100%"
+  padding: 10,
+  border: "1px solid #ddd",
+  borderRadius: 6,
+  flex: 1,
+  minWidth: 120
 };
 
-const subText = {
-  fontSize:12,
-  color:"#6C757D"
+const rowWrap = {
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap",
+  alignItems: "center"
 };
-
-const status = (s) => ({
-  padding:"3px 8px",
-  borderRadius:6,
-  fontSize:12,
-  display:"inline-block",
-  marginTop:4,
-  background: s === "active" ? "#d1fae5" : "#fee2e2",
-  color: s === "active" ? "green" : "red"
-});
 
 const btnPrimary = {
-  background:"#14532D",
-  color:"#fff",
-  padding:10,
-  borderRadius:6,
-  border:"none"
+  background: "#0b5",
+  color: "#fff",
+  padding: "10px",
+  border: "none",
+  borderRadius: 6,
+  cursor: "pointer",
+  width: "100%"
+};
+const bottomRow = {
+  display: "flex",
+  justifyContent: "space-between",  // 🔥 LEFT + RIGHT
+  alignItems: "center",
+  width: "100%",                    // 🔥 FULL WIDTH
+  marginTop: 6,
+  gap: 10
 };
 
 const btnGold = {
-  background:"#D4AF37",
-  color:"#000",
-  padding:"6px 10px",
-  borderRadius:6,
-  border:"none"
+  background: "#f4c430",
+  padding: "6px 12px",
+  border: "none",
+  borderRadius: 6,
+  cursor: "pointer",
+  fontSize: 13,
+  fontWeight: 500
 };
 
 const btnDanger = {
-  background:"#fee2e2",
-  color:"red",
-  padding:"6px 10px",
-  borderRadius:6,
-  border:"none"
+  background: "#ff4d4f",
+  color: "#fff",
+  padding: "6px 12px",
+  border: "none",
+  borderRadius: 6,
+  fontSize: 13,
+  fontWeight: 500
 };
+
+const listCard = {
+  background: "#fff",
+  padding: 16,
+  borderRadius: 12,
+  marginTop: 12,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",   // ✅ vertical align fix
+  flexWrap: "wrap",       // ✅ mobile safe
+  gap: 10
+};
+
+const leftWrap = {
+  display: "flex",
+  gap: 12,
+  alignItems: "center",   // ✅ center content nicely
+  flex: 1,
+  minWidth: 0
+};
+
+const img = {
+  width: 55,
+  height: 55,
+  objectFit: "cover",
+  borderRadius: 8,
+  flexShrink: 0
+};
+const subText = {
+  color: "#666",
+  fontSize: 13
+};
+
+const btnWrap = {
+  display: "flex",
+  gap: 8,
+  alignItems: "center",   // ✅ same line alignment
+  justifyContent: "flex-end"
+};
+
+const status = (s) => ({
+  padding: "4px 8px",
+  borderRadius: 6,
+  background: s === "active" ? "#d4edda" : "#f8d7da"
+});

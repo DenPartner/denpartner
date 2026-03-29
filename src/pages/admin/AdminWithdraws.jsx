@@ -8,14 +8,16 @@ import {
   updateDoc,
   query,
   where,
+  addDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 
 export default function AdminWithdraws() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ NEW FILTER STATE
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sortType, setSortType] = useState("latest");
 
   const fetchRequests = async () => {
     try {
@@ -45,6 +47,17 @@ export default function AdminWithdraws() {
 
       await updateDoc(ref, {
         status: "processing",
+      });
+
+      // ✅ NOTIFICATION
+      await addDoc(collection(db, "notifications"), {
+        userId: req.uid,
+        target: req.uid,
+        title: "Withdraw Processing ⏳",
+        message: `Your withdraw request of ₹${req.amount} is being processed.`,
+        type: "withdraw",
+        seen: false,
+        createdAt: serverTimestamp(),
       });
 
       fetchRequests();
@@ -80,7 +93,18 @@ export default function AdminWithdraws() {
         });
       }
 
-       toast("✅ Marked as Paid");
+      // ✅ NOTIFICATION
+      await addDoc(collection(db, "notifications"), {
+        userId: req.uid,
+        target: req.uid,
+        title: "Withdraw Successful ✅",
+        message: `₹${req.amount} has been successfully transferred to your bank.`,
+        type: "withdraw",
+        seen: false,
+        createdAt: serverTimestamp(),
+      });
+
+      toast("✅ Marked as Paid");
       fetchRequests();
     } catch (err) {
       console.error(err);
@@ -101,22 +125,51 @@ export default function AdminWithdraws() {
         adminComment: comment,
       });
 
+      // ✅ NOTIFICATION
+      await addDoc(collection(db, "notifications"), {
+        userId: req.uid,
+        target: req.uid,
+        title: "Withdraw Rejected ❌",
+        message: `Your withdraw request was rejected. Reason: ${comment}`,
+        type: "withdraw",
+        seen: false,
+        createdAt: serverTimestamp(),
+      });
+
       fetchRequests();
     } catch (err) {
       console.error(err);
     }
   };
 
-  // ✅ FILTER + SORT
-  const filteredRequests = requests
-    .filter((r) => {
-      if (statusFilter === "all") return true;
-      return r.status === statusFilter;
-    })
-    .sort((a, b) => {
-      if (!a.createdAt || !b.createdAt) return 0;
-      return b.createdAt.seconds - a.createdAt.seconds;
+  const formatDate = (timestamp) => {
+    if (!timestamp) return "";
+
+    const d = new Date(timestamp.seconds * 1000);
+
+    return d.toLocaleString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
+  };
+
+  let filteredRequests = requests.filter((r) => {
+    if (statusFilter === "all") return true;
+    return r.status === statusFilter;
+  });
+
+  filteredRequests = filteredRequests.sort((a, b) => {
+    if (!a.createdAt || !b.createdAt) return 0;
+
+    if (sortType === "latest") {
+      return b.createdAt.seconds - a.createdAt.seconds;
+    } else {
+      return a.createdAt.seconds - b.createdAt.seconds;
+    }
+  });
 
   if (loading) {
     return <div className="p-6">Loading...</div>;
@@ -129,8 +182,7 @@ export default function AdminWithdraws() {
         Withdraw Requests
       </h2>
 
-      {/* ✅ FILTER BUTTONS */}
-      <div className="flex gap-2 mb-4 flex-wrap">
+      <div className="flex gap-2 mb-3 flex-wrap">
         {["all", "pending", "processing", "paid", "rejected"].map((s) => (
           <button
             key={s}
@@ -144,6 +196,17 @@ export default function AdminWithdraws() {
             {s}
           </button>
         ))}
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        <select
+          value={sortType}
+          onChange={(e) => setSortType(e.target.value)}
+          className="px-3 py-2 border rounded"
+        >
+          <option value="latest">Latest First</option>
+          <option value="oldest">Oldest First</option>
+        </select>
       </div>
 
       {filteredRequests.length === 0 ? (
@@ -160,9 +223,12 @@ export default function AdminWithdraws() {
                 <p><b>User:</b> {req.userId}</p>
                 <p><b>Amount:</b> ₹{req.amount}</p>
                 <p><b>Status:</b> {req.status}</p>
+
+                <p className="text-sm text-gray-500">
+                  {formatDate(req.createdAt)}
+                </p>
               </div>
 
-              {/* 🏦 BANK DETAILS */}
               {req.bank && (
                 <div className="mb-3 text-sm bg-gray-50 p-3 rounded">
                   <p><b>Name:</b> {req.bank.name}</p>
@@ -171,14 +237,12 @@ export default function AdminWithdraws() {
                 </div>
               )}
 
-              {/* ❌ COMMENT */}
               {req.adminComment && (
                 <p className="text-red-600 text-sm mb-2">
                   Reason: {req.adminComment}
                 </p>
               )}
 
-              {/* ACTIONS */}
               {req.status === "pending" && (
                 <div className="flex gap-2">
                   <button
