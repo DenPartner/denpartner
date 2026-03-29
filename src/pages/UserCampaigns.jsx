@@ -103,7 +103,6 @@ export default function UserCampaigns() {
     toast("Link copied 🔗");
   };
 
-  // ✅ SINGLE SHARE (WHATSAPP)
   const handleShare = (item) => {
     const link = generateLink(item);
     if (!link) return;
@@ -118,7 +117,6 @@ ${link}`;
     window.location.href = `https://wa.me/?text=${encodeURIComponent(message)}`;
   };
 
-  // ✅ SHARE SELECTED (COPY ONLY)
   const handleShareAll = () => {
     if (selected.length === 0) {
       toast("Select at least one product");
@@ -233,11 +231,11 @@ ${link}
                   {item.offer ? `Offer ${item.offer}%` : ""}
                 </p>
 
+                {/* ✅ ONLY CHANGE HERE */}
                 <p className="text-primary font-bold mb-3">
-                  Earn upto ₹{earn}{" "}
-                  {item.earnType === "order" && "(per order)"}
-                  {item.earnType === "click" && "(per click)"}
-                  {item.earnType === "install" && "(per install)"}
+                  {item.earnType === "order" && `Earn upto ${item.commissionValue}% (per order)`}
+                  {item.earnType === "click" && `Earn upto ₹${earn} (per click)`}
+                  {item.earnType === "install" && `Earn upto ₹${earn} (per install)`}
                 </p>
 
                 <div className="flex gap-2">
