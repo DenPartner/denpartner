@@ -103,7 +103,7 @@ export default function UserCampaigns() {
     toast("Link copied 🔗");
   };
 
-  // ✅ FINAL SHARE FIX
+  // ✅ FINAL CLEAN SHARE (NO DUPLICATE ISSUE)
   const handleShare = (item) => {
     const link = generateLink(item);
     if (!link) return;
@@ -115,39 +115,41 @@ export default function UserCampaigns() {
 👉 Buy Now:
 ${link}`;
 
-    const isMobile = /Android|iPhone/i.test(navigator.userAgent);
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
-    if (navigator.share && isMobile) {
-      navigator.share({
-        title: item.title,
-        text: message,
-      });
-    } else {
-      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, "_blank");
-    }
+    window.open(whatsappUrl, "_blank");
   };
 
+  // ✅ SHARE MULTIPLE PRODUCTS
   const handleShareAll = () => {
     if (selected.length === 0) {
       toast("Select at least one product");
       return;
     }
 
-    const messages = campaigns
-      .filter((c) => selected.includes(c.id))
-      .map((item) => {
-        const link = generateLink(item);
-        return `🔥 ${item.title}
-💰 ₹${item.price}
-🎁 ${item.offer || "Best Deal"}
+    let message = "";
 
-👉 ${link}`;
-      })
-      .join("\n\n━━━━━━━━━━━━━━━\n\n");
+    selected.forEach((id) => {
+      const item = campaigns.find((c) => c.id === id);
+      if (!item) return;
 
-    navigator.clipboard.writeText(messages);
-    toast("All copied!");
+      const link = generateLink(item);
+
+      message += `🔥 ${item.title}
+💰 Price: ₹${item.price}
+🎁 ${item.offer ? `Offer: ${item.offer}` : "Best Deal"}
+
+👉 Buy Now:
+${link}
+
+----------------------
+
+`;
+    });
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+    window.open(whatsappUrl, "_blank");
   };
 
   return (
