@@ -96,12 +96,30 @@ export default function UserCampaigns() {
     return `${window.location.origin}/r/${item.id}-${userId}-${clickId}`;
   };
 
-  const handleCopy = (item) => {
-    const link = generateLink(item);
-    if (!link) return;
-    navigator.clipboard.writeText(link);
-    toast("Link copied 🔗");
-  };
+ const handleCopy = (item) => {
+  const link = generateLink(item);
+  if (!link) return;
+
+  let finalPrice = item.price;
+
+  if (item.offer) {
+    finalPrice = Math.round(
+      item.price - (item.price * item.offer) / 100
+    );
+  }
+
+  const message = `🔥 ${item.title}
+
+💰 Price: ₹${finalPrice}
+${item.offer ? `🏷 ${item.offer}% OFF` : ""}
+
+👉 Buy Now:
+${link}`;
+
+  navigator.clipboard.writeText(message);
+
+  toast("Message copied 🚀 Paste anywhere!");
+};
 
   const handleShare = (item) => {
 
@@ -296,7 +314,7 @@ if (item.offer) {
                     onClick={() => handleCopy(item)}
                     className="flex-1 bg-primary text-white py-2 rounded-md text-sm"
                   >
-                    Copy
+                    Copy Message
                   </button>
 
                   <button
