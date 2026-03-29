@@ -132,7 +132,7 @@ export default function AdminCampaigns() {
         <input placeholder="Title" value={title} onChange={e=>setTitle(e.target.value)} style={input}/>
         <input placeholder="Price" value={price} onChange={e=>setPrice(e.target.value)} style={input}/>
         <input placeholder="Offer" value={offer} onChange={e=>setOffer(e.target.value)} style={input}/>
-        <input placeholder="Description" value={description} onChange={e=>setOffer(e.target.value)} style={input}/>
+        <input placeholder="Description" value={description} onChange={e=>setDescription(e.target.value)} style={input}/>
         <input placeholder="Image URL" value={image} onChange={e=>setImage(e.target.value)} style={input}/>
         <input placeholder="Product URL" value={url} onChange={e=>setUrl(e.target.value)} style={input}/>
 
