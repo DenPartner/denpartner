@@ -68,7 +68,6 @@ export default function UserCampaigns() {
     );
   }
 
-  // ✅ UPDATED SORT LOGIC (price + latest)
   if (sort === "low") {
     filteredCampaigns.sort((a, b) => a.price - b.price);
   } else if (sort === "high") {
@@ -104,26 +103,28 @@ export default function UserCampaigns() {
     toast("Link copied 🔗");
   };
 
+  // ✅ FINAL SHARE FIX
   const handleShare = (item) => {
     const link = generateLink(item);
     if (!link) return;
 
     const message = `🔥 ${item.title}
 💰 Price: ₹${item.price}
-🎁 ${item.offer}
+🎁 ${item.offer ? `Offer: ${item.offer}` : "Best Deal"}
 
-Buy Now:
+👉 Buy Now:
 ${link}`;
 
-    if (navigator.share) {
+    const isMobile = /Android|iPhone/i.test(navigator.userAgent);
+
+    if (navigator.share && isMobile) {
       navigator.share({
         title: item.title,
         text: message,
-        url: link,
       });
     } else {
-      navigator.clipboard.writeText(message);
-      toast("Link copied!");
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, "_blank");
     }
   };
 
@@ -133,31 +134,22 @@ ${link}`;
       return;
     }
 
-const handleShare = (item) => {
-  const link = generateLink(item);
-  if (!link) return;
+    const messages = campaigns
+      .filter((c) => selected.includes(c.id))
+      .map((item) => {
+        const link = generateLink(item);
+        return `🔥 ${item.title}
+💰 ₹${item.price}
+🎁 ${item.offer || "Best Deal"}
 
-  const message = `🔥 ${item.title}
-💰 Price: ₹${item.price}
-🎁 ${item.offer ? `Offer: ${item.offer}` : "Best Deal"}
+👉 ${link}`;
+      })
+      .join("\n\n━━━━━━━━━━━━━━━\n\n");
 
-👉 Buy Now: ${link}`;
+    navigator.clipboard.writeText(messages);
+    toast("All copied!");
+  };
 
-  const isMobile = /Android|iPhone/i.test(navigator.userAgent);
-
-  // ✅ If mobile → use native share (best UX)
-  if (navigator.share && isMobile) {
-    navigator.share({
-      title: item.title,
-      text: message,
-    });
-  } else {
-    // ✅ Desktop → open WhatsApp (best conversion)
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
-  }
-};
-}
   return (
     <div className="bg-[#F3F4F6] min-h-screen">
       <div className="max-w-6xl mx-auto p-4 md:p-6 pb-20">
@@ -172,7 +164,6 @@ const handleShare = (item) => {
           className="w-full mb-3 p-2 border rounded-md"
         />
 
-        {/* ✅ ALL FILTERS IN ONE LINE */}
         <div className="flex gap-2 mb-4">
 
           <select
