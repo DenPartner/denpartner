@@ -28,6 +28,8 @@ export default function AdminCampaigns() {
 
   const [categories, setCategories] = useState([]);
   const [newCategory, setNewCategory] = useState("");
+  const [editId, setEditId] = useState(null);
+const [editData, setEditData] = useState({});
 
   const [filterCategory, setFilterCategory] = useState("All");
   const [sort, setSort] = useState("");
@@ -59,39 +61,66 @@ export default function AdminCampaigns() {
   }, []);
 
   const handleAdd = async () => {
-    if (!title || !price) {
-      toast("Fill required fields");
-      return;
+  if (!title || !price) {
+    toast("Fill required fields");
+    return;
+  }
+
+  try {
+    if (editId) {
+      // 🔥 UPDATE
+      await updateDoc(doc(db, "campaigns", editId), {
+        title,
+        price: Number(price),
+        offer,
+        description,
+        image,
+        url,
+        category,
+        commissionType,
+        commissionValue: Number(commissionValue),
+        earnType,
+      });
+
+      toast("Campaign updated ✏️");
+    } else {
+      // 🔥 ADD
+      await addDoc(collection(db, "campaigns"), {
+        title,
+        price: Number(price),
+        offer,
+        description,
+        image,
+        url,
+        category,
+        commissionType,
+        commissionValue: Number(commissionValue),
+        earnType,
+        status: "active",
+        createdAt: new Date(),
+      });
+
+      toast("Campaign added ✅");
     }
 
-    await addDoc(collection(db, "campaigns"), {
-      title,
-      price: Number(price),
-      offer,
-      description,
-      image,
-      url,
-      category,
-      commissionType,
-      commissionValue: Number(commissionValue),
-      earnType,
-      status: "active",
-      createdAt: new Date(),
-    });
-
-    toast("Campaign added ✅");
-
+    // 🔥 RESET FORM
     setTitle("");
     setPrice("");
     setOffer("");
-     setDescription("");
+    setDescription("");
     setImage("");
     setUrl("");
     setCategory("");
     setCommissionValue("");
+    setEditId(null);
 
     fetchCampaigns();
-  };
+
+  } catch (err) {
+    console.error(err);
+    toast("Something went wrong");
+  }
+};
 
   const toggleStatus = async (c) => {
     const ref = doc(db, "campaigns", c.id);
@@ -167,7 +196,9 @@ export default function AdminCampaigns() {
           <option value="install">Per Install</option>
         </select>
 
-        <button onClick={handleAdd} style={btnPrimary}>Add Campaign</button>
+        <button onClick={handleAdd} style={btnPrimary}>
+  {editId ? "Update Campaign" : "Add Campaign"}
+</button>
       </div>
 
       <div style={{  marginTop:20, display:"flex",  gap:10,  flexWrap:"wrap"}}>
@@ -197,12 +228,43 @@ export default function AdminCampaigns() {
           <div key={c.id} style={listCard}>
 
            <div style={leftWrap}>
-  <img src={c.image} alt="" style={img}/>
+ {c.image && (
+  <img src={c.image} alt="" style={{
+       width: 50,
+      height: 50,
+      objectFit: "cover",
+      borderRadius: 6,
+      alignSelf: "flex-start"
+    }}
+  />
+)}
 
   <div style={{flex:1, display:"flex", flexDirection:"column", gap:4}}>
     <h4 style={{fontWeight:600}}>{c.title}</h4>
-    <p>₹{c.price}</p>
-    <p style={subText}>{c.category}</p>
+
+{/* ✅ PRICE WITH OFFER */}
+{c.offer ? (
+  <>
+    <p style={{ textDecoration: "line-through", color: "#999" }}>
+      ₹{c.price}
+    </p>
+    <p style={{ color: "green", fontWeight: 600 }}>
+      ₹{Math.round(c.price - (c.price * c.offer / 100))}
+    </p>
+    <p style={{ color: "#ff6600", fontSize: 13 }}>
+      {c.offer}% OFF
+    </p>
+  </>
+) : (
+  <p>₹{c.price}</p>
+)}
+
+{/* ✅ DESCRIPTION */}
+{c.description && (
+  <p style={subText}>{c.description}</p>
+)}
+
+<p style={subText}>{c.category}</p>
     <p style={subText}>{c.commissionValue} {c.commissionType} / {c.earnType}</p>
     <p style={subText}>Added: {date}</p>
 
@@ -213,14 +275,49 @@ export default function AdminCampaigns() {
       </span>
 
       <div style={btnWrap}>
-        <button onClick={()=>toggleStatus(c)} style={btnGold}>
-          {c.status === "active" ? "Pause" : "Unpause"}
-        </button>
 
-        <button onClick={()=>handleDelete(c.id)} style={btnDanger}>
-          Delete
-        </button>
-      </div>
+  <button
+    onClick={()=>{
+  setEditId(c.id);
+
+  // 🔥 fill form
+  setTitle(c.title || "");
+  setPrice(c.price || "");
+  setOffer(c.offer || "");
+  setDescription(c.description || "");
+  setImage(c.image || "");
+  setUrl(c.url || "");
+  setCategory(c.category || "");
+  setCommissionType(c.commissionType || "percentage");
+  setCommissionValue(c.commissionValue || "");
+  setEarnType(c.earnType || "order");
+
+  // 🔥 scroll to form
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}}
+    style={btnGold}
+  >
+    Edit
+  </button>
+
+  {editId === c.id && (
+    <button
+      onClick={()=>handleSave(c.id)}
+      style={btnPrimary}
+    >
+      Save
+    </button>
+  )}
+
+  <button onClick={()=>toggleStatus(c)} style={btnGold}>
+    {c.status === "active" ? "Pause" : "Unpause"}
+  </button>
+
+  <button onClick={()=>handleDelete(c.id)} style={btnDanger}>
+    Delete
+  </button>
+
+</div>
     </div>
 
   </div>
@@ -322,8 +419,8 @@ const listCard = {
 
 const leftWrap = {
   display: "flex",
-  gap: 12,
-  alignItems: "center",   // ✅ center content nicely
+  flexDirection: "column",   // 🔥 KEY CHANGE
+  gap: 8,
   flex: 1,
   minWidth: 0
 };

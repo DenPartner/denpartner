@@ -79,75 +79,82 @@ export default function Login() {
         });
 
         // 🔔 AUTO WELCOME NOTIFICATION
-        await addDoc(collection(db, "notifications"), {
-          userId: userCred.user.uid,
-          title: "Welcome 🎉",
-          message:
-            "Welcome to DenPartner! Start sharing links and earn money 💰. Please verify your email in Profile → My Account for better security.",
-          type: "system",
-          createdAt: serverTimestamp(),
-        });
+        try {
+          await addDoc(collection(db, "notifications"), {
+            userId: userId,
+            title: "Welcome 🎉",
+            message:
+              "Welcome to DenPartner! Start sharing links and earn money 💰.",
+            type: "system",
+            createdAt: serverTimestamp(),
+          });
 
-        toast("Signup successful 🎉");
+          console.log("Notification created ✅");
+        } catch (err) {
+          console.log("Notification error ❌", err);
+        }
 
         setName("");
         setEmail("");
         setPassword("");
         setAccepted(false);
 
-        navigate("/dashboard");
+        toast("Signup successful 🎉, Please login");
+
+        navigate("/login");
+
+        return; // ✅ FIX (STOP DOUBLE EXECUTION)
       }
 
       // 🔓 LOGIN
-else {
-  if (!email.includes("@")) {
-    toast("Enter valid email");
-    return;
-  }
+      else {
+        if (!email.includes("@")) {
+          toast("Enter valid email");
+          return;
+        }
 
-  const userCred = await signInWithEmailAndPassword(
-    auth,
-    email,
-    password
-  );
+        const userCred = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
 
-  let snap = await getDoc(
-  doc(db, "users", userCred.user.uid)
-);
+        let snap = await getDoc(
+          doc(db, "users", userCred.user.uid)
+        );
 
-let isAdmin = false;
+        let isAdmin = false;
 
-if (!snap.exists()) {
-  snap = await getDoc(
-    doc(db, "admins", userCred.user.uid)
-  );
+        if (!snap.exists()) {
+          snap = await getDoc(
+            doc(db, "admins", userCred.user.uid)
+          );
 
-  if (snap.exists()) {
-    isAdmin = true;
-  }
-}
+          if (snap.exists()) {
+            isAdmin = true;
+          }
+        }
 
-if (!snap.exists()) {
-  toast("User data not found");
-  return;
-}
+        if (!snap.exists()) {
+          toast("User data not found");
+          return;
+        }
 
-  // ✅ BLOCK CHECK (NEW)
-  if (snap.data().isBlocked) {
-    await auth.signOut();
-    toast("Your account is blocked. Contact support team.");
-    return;
-  }
+        if (snap.data().isBlocked) {
+          await auth.signOut();
+          toast("Your account is blocked. Contact support team.");
+          return;
+        }
 
-  toast("Login successful ✅");
+        toast("Login successful ✅");
 
-  setEmail("");
-  setPassword("");
+        setEmail("");
+        setPassword("");
 
-setTimeout(() => {
-  navigate(isAdmin ? "/admin" : "/dashboard");
-}, 500);
-}
+        setTimeout(() => {
+          navigate(isAdmin ? "/admin" : "/dashboard");
+        }, 500);
+      }
 
     } catch (error) {
       if (error.code === "auth/user-not-found") {
@@ -217,32 +224,32 @@ setTimeout(() => {
           )}
 
           {isSignup && !forgot && (
-  <div className="flex items-start gap-2 text-sm">
-    <input
-      type="checkbox"
-      checked={accepted}
-      onChange={() => setAccepted(!accepted)}
-      className="mt-1"
-    />
+            <div className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={accepted}
+                onChange={() => setAccepted(!accepted)}
+                className="mt-1"
+              />
 
-    <span className="leading-6">
-      I agree to the{" "}
-      <span
-        onClick={() => navigate("/user-privacy")}
-        className="text-primary cursor-pointer underline"
-      >
-        Privacy Policy
-      </span>{" "}
-      and{" "}
-      <span
-        onClick={() => navigate("/terms")}
-        className="text-primary cursor-pointer underline"
-      >
-        Terms & Conditions
-      </span>
-    </span>
-  </div>
-)}
+              <span className="leading-6">
+                I agree to the{" "}
+                <span
+                  onClick={() => navigate("/user-privacy")}
+                  className="text-primary cursor-pointer underline"
+                >
+                  Privacy Policy
+                </span>{" "}
+                and{" "}
+                <span
+                  onClick={() => navigate("/terms")}
+                  className="text-primary cursor-pointer underline"
+                >
+                  Terms & Conditions
+                </span>
+              </span>
+            </div>
+          )}
 
           <button
             type="submit"
