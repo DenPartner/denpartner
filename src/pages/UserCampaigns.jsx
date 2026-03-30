@@ -10,21 +10,21 @@ export default function UserCampaigns() {
   const [category, setCategory] = useState("All");
   const [campaigns, setCampaigns] = useState([]);
   const [userId, setUserId] = useState("");
+  
   const handleUniversalShare = (message) => {
-  // ✅ mobile native share (best)
-  if (navigator.share) {
-    navigator.share({
-      text: message,
-    }).catch(() => {});
-  } else {
-    // fallback → open options manually
-    const encoded = encodeURIComponent(message);
+  const encoded = encodeURIComponent(message);
 
-    // open small chooser idea (simple version)
+  // ✅ detect mobile devices
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  if (isMobile && navigator.share) {
+    // ✅ mobile → use native share
+    navigator.share({ text: message }).catch(() => {});
+  } else {
+    // ✅ desktop → directly open WhatsApp (no Windows popup)
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
   }
 };
-
   const [categories, setCategories] = useState(["All"]);
   const [sort, setSort] = useState("");
   const [search, setSearch] = useState("");
