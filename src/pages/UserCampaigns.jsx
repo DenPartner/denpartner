@@ -28,6 +28,7 @@ export default function UserCampaigns() {
 };
   const [categories, setCategories] = useState(["All"]);
   const [sort, setSort] = useState("");
+  const [offerFilter, setOfferFilter] = useState("");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -83,12 +84,39 @@ export default function UserCampaigns() {
       c.title.toLowerCase().includes(search.toLowerCase())
     );
   }
+  if (offerFilter) {
+  filteredCampaigns = filteredCampaigns.filter(
+    (c) => c.offer && c.offer >= Number(offerFilter)
+  );
+}
 
   if (sort === "low") {
-    filteredCampaigns.sort((a, b) => a.price - b.price);
-  } else if (sort === "high") {
-    filteredCampaigns.sort((a, b) => b.price - a.price);
-  } else if (sort === "latest") {
+  filteredCampaigns.sort((a, b) => {
+    const priceA = a.offer
+      ? a.price - (a.price * a.offer) / 100
+      : a.price;
+
+    const priceB = b.offer
+      ? b.price - (b.price * b.offer) / 100
+      : b.price;
+
+    return priceA - priceB;
+  });
+} else if (sort === "high") {
+  filteredCampaigns.sort((a, b) => {
+    const priceA = a.offer
+      ? a.price - (a.price * a.offer) / 100
+      : a.price;
+
+    const priceB = b.offer
+      ? b.price - (b.price * b.offer) / 100
+      : b.price;
+
+    return priceB - priceA;
+  });
+}
+
+  else if (sort === "latest") {
     filteredCampaigns.sort(
       (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
     );
@@ -243,6 +271,16 @@ ${link}
             <option value="low">Price Low → High</option>
             <option value="high">Price High → Low</option>
           </select>
+          <select
+  value={offerFilter}
+  onChange={(e) => setOfferFilter(e.target.value)}
+  className="p-2 border rounded-md flex-1"
+>
+  <option value="">Offer</option>
+  <option value="10">10%+ OFF</option>
+  <option value="20">20%+ OFF</option>
+  <option value="50">50%+ OFF</option>
+</select>
 
         </div>
 
