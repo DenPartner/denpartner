@@ -28,7 +28,7 @@ export default function UserCampaigns() {
 };
   const [categories, setCategories] = useState(["All"]);
   const [sort, setSort] = useState("");
-  const [offerFilter, setOfferFilter] = useState("");
+  
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -84,11 +84,7 @@ export default function UserCampaigns() {
       c.title.toLowerCase().includes(search.toLowerCase())
     );
   }
-  if (offerFilter) {
-  filteredCampaigns = filteredCampaigns.filter(
-    (c) => c.offer && c.offer >= Number(offerFilter)
-  );
-}
+ 
 
   if (sort === "low") {
   filteredCampaigns.sort((a, b) => {
@@ -125,7 +121,21 @@ export default function UserCampaigns() {
       (a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0)
     );
   }
-
+else if (sort === "offer10") {
+  filteredCampaigns = filteredCampaigns.filter(
+    (c) => c.offer && c.offer >= 10
+  );
+}
+else if (sort === "offer20") {
+  filteredCampaigns = filteredCampaigns.filter(
+    (c) => c.offer && c.offer >= 20
+  );
+}
+else if (sort === "offer50") {
+  filteredCampaigns = filteredCampaigns.filter(
+    (c) => c.offer && c.offer >= 50
+  );
+}
   const toggleSelect = (id) => {
     setSelected((prev) =>
       prev.includes(id)
@@ -270,17 +280,11 @@ ${link}
             <option value="oldest">Oldest First</option>
             <option value="low">Price Low → High</option>
             <option value="high">Price High → Low</option>
+            <option value="offer10">10%+ OFF</option>
+<option value="offer20">20%+ OFF</option>
+<option value="offer50">50%+ OFF</option>
           </select>
-          <select
-  value={offerFilter}
-  onChange={(e) => setOfferFilter(e.target.value)}
-  className="p-2 border rounded-md flex-1"
->
-  <option value="">Offer</option>
-  <option value="10">10%+ OFF</option>
-  <option value="20">20%+ OFF</option>
-  <option value="50">50%+ OFF</option>
-</select>
+      
 
         </div>
 
