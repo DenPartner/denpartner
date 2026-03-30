@@ -12,6 +12,7 @@ export default function UserCampaigns() {
   const [userId, setUserId] = useState("");
   
   const handleUniversalShare = (message) => {
+    
   const encoded = encodeURIComponent(message);
 
   // ✅ detect mobile devices
@@ -137,7 +138,6 @@ ${link}`;
 };
 
   const handleShare = (item) => {
-
   const link = generateLink(item);
   if (!link) return;
 
@@ -157,20 +157,9 @@ ${item.offer ? `🏷 ${item.offer}% OFF` : ""}
 👉 Buy Now:
 ${link}`;
 
-  if (navigator.share) {
-    navigator
-      .share({
-        title: item.title,
-        text: message,
-              })
-      .catch(() => {});
-  } else {
-    window.open(
-      `https://wa.me/?text=${encodeURIComponent(message)}`,
-      "_blank"
-    );
-  }
+  handleUniversalShare(message); // ✅ FIXED
 };
+
 const handleShareAll = () => {
   if (selected.length === 0) {
     toast("Select at least one product");
@@ -214,6 +203,7 @@ ${link}
   });
 
  handleUniversalShare(message);
+ setSelected([]);
 };
 
   return (
