@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
 import toast from "react-hot-toast";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function UserCampaigns() {
 
@@ -9,6 +10,20 @@ export default function UserCampaigns() {
   const [category, setCategory] = useState("All");
   const [campaigns, setCampaigns] = useState([]);
   const [userId, setUserId] = useState("");
+  const handleUniversalShare = (message) => {
+  // ✅ mobile native share (best)
+  if (navigator.share) {
+    navigator.share({
+      text: message,
+    }).catch(() => {});
+  } else {
+    // fallback → open options manually
+    const encoded = encodeURIComponent(message);
+
+    // open small chooser idea (simple version)
+    window.open(`https://wa.me/?text=${encoded}`, "_blank");
+  }
+};
 
   const [categories, setCategories] = useState(["All"]);
   const [sort, setSort] = useState("");
@@ -147,8 +162,7 @@ ${link}`;
       .share({
         title: item.title,
         text: message,
-        url: link,
-      })
+              })
       .catch(() => {});
   } else {
     window.open(
@@ -157,34 +171,50 @@ ${link}`;
     );
   }
 };
-  const handleShareAll = () => {
-    if (selected.length === 0) {
-      toast("Select at least one product");
-      return;
-    }
+const handleShareAll = () => {
+  if (selected.length === 0) {
+    toast("Select at least one product");
+    return;
+  }
 
-    let message = "";
+  let message = "";
 
-    selected.forEach((id, index) => {
-      const item = campaigns.find((c) => c.id === id);
-      if (!item) return;
+  selected.forEach((id, index) => {
+    const item = campaigns.find((c) => c.id === id);
+    if (!item) return;
 
-      const link = generateLink(item);
+    // ✅ ADD THIS LINE (IMPORTANT)
+    const clickId = Date.now() + Math.floor(Math.random() * 100000);
+// ✅ SAVE CLICK (IMPORTANT)
+addDoc(collection(db, "clicks"), {
+  clickId: clickId.toString(),
+  userId,
+  campaignId: item.id,
+  createdAt: serverTimestamp(),
+});
+    const link = `${window.location.origin}/r/${item.id}-${userId}-${clickId}`;
 
-      message += `${index + 1}. ${item.title}
-💰 Price: ₹${item.price}
-🎁 ${item.offer ? `Offer: ${item.offer}` : "Best Deal"}
+   let finalPrice = item.price;
+
+if (item.offer) {
+  finalPrice = Math.round(
+    item.price - (item.price * item.offer) / 100
+  );
+}
+
+message += `🔥 *${index + 1}. ${item.title}*
+
+💰 Price: ₹${finalPrice}
+${item.offer ? `🏷 ${item.offer}% OFF` : ""}
 
 👉 Buy Now:
 ${link}
 
 `;
-    });
+  });
 
-    navigator.clipboard.writeText(message);
-
-    toast("Copied! Paste anywhere ✅");
-  };
+ handleUniversalShare(message);
+};
 
   return (
     <div className="bg-[#F3F4F6] min-h-screen">
