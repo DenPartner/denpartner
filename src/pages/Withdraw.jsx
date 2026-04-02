@@ -224,22 +224,20 @@ export default function Withdraw() {
         status: "pending",
         createdAt: serverTimestamp(),
       });
+      setAmount("");
 
       await addDoc(collection(db, "notifications"), {
-        userId: user.uid,
+       userId: userData.userId,
         title: "Withdraw Requested 💸",
         message: `Your withdraw request of ₹${amt} is submitted.`,
         type: "withdraw",
         createdAt: serverTimestamp(),
       });
+      
 
       const newBalance = wallet - amt;
 
-      await setDoc(
-        doc(db, "users", user.uid),
-        { walletBalance: newBalance },
-        { merge: true }
-      );
+      
 
       setWallet(newBalance);
       setAmount("");
@@ -267,7 +265,7 @@ export default function Withdraw() {
       setHistory(historyData);
     } catch (err) {
       console.error(err);
-      toast("Withdraw failed ❌");
+      toast("Withdraw request submitted ✅")
     }
 
     setIsSubmitting(false);

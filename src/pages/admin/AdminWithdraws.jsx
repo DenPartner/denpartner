@@ -51,8 +51,8 @@ export default function AdminWithdraws() {
 
       // ✅ NOTIFICATION
       await addDoc(collection(db, "notifications"), {
-        userId: req.uid,
-        target: req.uid,
+        userId: req.userId,
+        target: req.userId,
         title: "Withdraw Processing ⏳",
         message: `Your withdraw request of ₹${req.amount} is being processed.`,
         type: "withdraw",
@@ -95,8 +95,8 @@ export default function AdminWithdraws() {
 
       // ✅ NOTIFICATION
       await addDoc(collection(db, "notifications"), {
-        userId: req.uid,
-        target: req.uid,
+        userId: req.userId,
+        target: req.userId,
         title: "Withdraw Successful ✅",
         message: `₹${req.amount} has been successfully transferred to your bank.`,
         type: "withdraw",
@@ -127,8 +127,8 @@ export default function AdminWithdraws() {
 
       // ✅ NOTIFICATION
       await addDoc(collection(db, "notifications"), {
-        userId: req.uid,
-        target: req.uid,
+        userId: req.userId,
+        target: req.userId,
         title: "Withdraw Rejected ❌",
         message: `Your withdraw request was rejected. Reason: ${comment}`,
         type: "withdraw",

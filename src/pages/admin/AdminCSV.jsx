@@ -14,6 +14,7 @@ import {
   getDoc
 } from "firebase/firestore";
 import Papa from "papaparse";
+import { auth } from "../../firebase"; // ✅ added for debug
 
 export default function AdminCSV() {
 
@@ -56,7 +57,6 @@ export default function AdminCSV() {
         settings = { ...settings, ...settingsSnap.data() };
       }
 
-      // ✅ FIXED LOWERCASE MAP
       const usersSnap = await getDocs(collection(db, "users"));
       const usersMap = {};
       usersSnap.forEach((d) => {
@@ -75,177 +75,185 @@ export default function AdminCSV() {
         skipEmptyLines: true,
 
         complete: async (results) => {
-          const rows = results.data;
+          try {
 
-          let success = 0;
-          let skipped = 0;
-          let totalUserEarning = 0;
-          let totalPlatformProfit = 0;
+            console.log("Admin UID:", auth.currentUser?.uid); // 🔥 debug
 
-          for (let row of rows) {
+            const rows = results.data;
 
-            const rawSubId = findField(row, ["sub", "aff", "uid"]);
-            const commissionRaw = findField(row, [
-              "commission",
-              "revenue",
-              "amount",
-              "earning",
-              "sale",
-              "payout"
-            ]);
+            let success = 0;
+            let skipped = 0;
+            let totalUserEarning = 0;
+            let totalPlatformProfit = 0;
 
-            const orderId = findField(row, [
-              "orderid",
-              "transactionid",
-              "txn",
-              "saleid"
-            ]);
+            for (let row of rows) {
 
-            // ✅ HANDLE EMPTY SUBID
-            if (!rawSubId) {
-              skipped++;
-              continue;
-            }
+              const rawSubId = findField(row, ["sub", "aff", "uid"]);
+              const commissionRaw = findField(row, [
+                "commission",
+                "revenue",
+                "amount",
+                "earning",
+                "sale",
+                "payout"
+              ]);
 
-            // ✅ SUPPORT BOTH: DEN01 & DEN01-CLICKID
-            let userId = rawSubId;
-            let clickId = null;
+              const orderId = findField(row, [
+                "orderid",
+                "transactionid",
+                "txn",
+                "saleid"
+              ]);
 
-            if (rawSubId.includes("-")) {
-              const parts = rawSubId.split("-");
-              userId = parts[0];
-              clickId = parts[1];
-            }
-
-            const commission =
-              parseFloat(
-                String(commissionRaw).replace(/[^0-9.]/g, "")
-              ) || 0;
-
-            if (!userId || commission <= 0) {
-              skipped++;
-              continue;
-            }
-
-            // 🔥 DUPLICATE CHECK
-            let isDuplicate = false;
-            const uniqueKey = `${rawSubId}-${commission}-${orderId || ""}`;
-
-            if (orderId) {
-              const q = query(
-                collection(db, "earnings"),
-                where("orderId", "==", orderId)
-              );
-              const existing = await getDocs(q);
-
-              if (!existing.empty) {
-                isDuplicate = true;
+              if (!rawSubId) {
+                skipped++;
+                continue;
               }
-            }
 
-            if (!orderId && !isDuplicate) {
-              const q = query(
-                collection(db, "earnings"),
-                where("uniqueKey", "==", uniqueKey)
-              );
+              let userId = rawSubId;
+              let clickId = null;
 
-              const existing = await getDocs(q);
-
-              if (!existing.empty) {
-                isDuplicate = true;
+              if (rawSubId.includes("-")) {
+                const parts = rawSubId.split("-");
+                userId = parts[0];
+                clickId = parts[1];
               }
-            }
 
-            if (isDuplicate) {
-              skipped++;
-              continue;
-            }
+              const commission =
+                parseFloat(
+                  String(commissionRaw).replace(/[^0-9.]/g, "")
+                ) || 0;
 
-            const clickData = clicksMap[clickId];
-
-            let campaignId = null;
-            let earnType = "order";
-
-            if (clickData) {
-              campaignId = clickData.campaignId;
-
-              const campaignSnap = await getDoc(
-                doc(db, "campaigns", campaignId)
-              );
-
-              if (campaignSnap.exists()) {
-                earnType = campaignSnap.data().earnType || "order";
+              if (!userId || commission <= 0) {
+                skipped++;
+                continue;
               }
-            }
 
-            let percent = settings.orderCommission;
+              let isDuplicate = false;
+              const uniqueKey = `${rawSubId}-${commission}-${orderId || ""}`;
 
-            if (earnType === "click") {
-              percent = settings.clickCommission;
-            }
+              if (orderId) {
+                const q = query(
+                  collection(db, "earnings"),
+                  where("orderId", "==", orderId)
+                );
+                const existing = await getDocs(q);
 
-            if (earnType === "install") {
-              percent = settings.installCommission;
-            }
+                if (!existing.empty) {
+                  isDuplicate = true;
+                }
+              }
 
-            const userAmount = commission * ((100 - percent) / 100);
-            const platformProfit = commission - userAmount;
+              if (!orderId && !isDuplicate) {
+                const q = query(
+                  collection(db, "earnings"),
+                  where("uniqueKey", "==", uniqueKey)
+                );
 
-            await addDoc(collection(db, "earnings"), {
-              userId,
-              campaignId: campaignId || null,
-              clickId: clickId || null,
-              amount: userAmount,
-              originalAmount: commission,
-              platformProfit,
-              earnType,
-              orderId,
-              uniqueKey,
-              status: "pending",
-              createdAt: serverTimestamp(),
-            });
+                const existing = await getDocs(q);
 
-            await addDoc(collection(db, "notifications"), {
-              userId: userId,
-              title: "New Earnings 💰",
-              message: `You earned ₹${Math.round(userAmount)} from a campaign.`,
-              type: "earning",
-              createdAt: serverTimestamp(),
-            });
+                if (!existing.empty) {
+                  isDuplicate = true;
+                }
+              }
 
-            // ✅ FIXED LOWERCASE MATCH
-            const userDocId = usersMap[userId.toLowerCase()];
+              if (isDuplicate) {
+                skipped++;
+                continue;
+              }
 
-            if (userDocId) {
-              await updateDoc(doc(db, "users", userDocId), {
-                walletBalance: increment(userAmount),
+              const clickData = clicksMap[clickId];
+
+              let campaignId = null;
+              let earnType = "order";
+
+              if (clickData) {
+                campaignId = clickData.campaignId;
+
+                const campaignSnap = await getDoc(
+                  doc(db, "campaigns", campaignId)
+                );
+
+                if (campaignSnap.exists()) {
+                  earnType = campaignSnap.data().earnType || "order";
+                }
+              }
+
+              let percent = settings.orderCommission;
+
+              if (earnType === "click") {
+                percent = settings.clickCommission;
+              }
+
+              if (earnType === "install") {
+                percent = settings.installCommission;
+              }
+
+              const userAmount = commission * ((100 - percent) / 100);
+              const platformProfit = commission - userAmount;
+
+              await addDoc(collection(db, "earnings"), {
+                userId,
+                campaignId: campaignId || null,
+                clickId: clickId || null,
+                amount: userAmount,
+                originalAmount: commission,
+                platformProfit,
+                earnType,
+                orderId,
+                uniqueKey,
+                status: "pending",
+                createdAt: serverTimestamp(),
               });
+
+              await addDoc(collection(db, "notifications"), {
+                userId: userId,
+                title: "New Earnings 💰",
+                message: `You earned ₹${Math.round(userAmount)} from a campaign.`,
+                type: "earning",
+                createdAt: serverTimestamp(),
+              });
+
+              const userDocId = usersMap[userId.toLowerCase()];
+
+              if (userDocId) {
+                await updateDoc(doc(db, "users", userDocId), {
+                  walletBalance: increment(userAmount),
+                });
+              }
+
+              totalUserEarning += userAmount;
+              totalPlatformProfit += platformProfit;
+
+              success++;
             }
 
-            totalUserEarning += userAmount;
-            totalPlatformProfit += platformProfit;
+            const totalNetworkEarning =
+              totalUserEarning + totalPlatformProfit;
 
-            success++;
+            await addDoc(collection(db, "csvUploads"), {
+              fileName: file.name,
+              totalRows: rows.length,
+              processed: success,
+              skipped,
+              totalUserEarning,
+              totalPlatformProfit,
+              totalNetworkEarning,
+              status: "completed",
+              uploadedAt: serverTimestamp(),
+            });
+
+            toast(`✅ Added: ${success} | Skipped: ${skipped}`);
+
+            setLoading(false);
+
+          } catch (err) {
+
+            console.error("CSV ERROR:", err);
+            toast("CSV failed ❌ Check console");
+            setLoading(false); // 🔥 prevents freeze
+
           }
-
-          const totalNetworkEarning =
-            totalUserEarning + totalPlatformProfit;
-
-          await addDoc(collection(db, "csvUploads"), {
-            fileName: file.name,
-            totalRows: rows.length,
-            processed: success,
-            skipped,
-            totalUserEarning,
-            totalPlatformProfit,
-            totalNetworkEarning,
-            status: "completed",
-            uploadedAt: serverTimestamp(),
-          });
-
-          toast(`✅ Added: ${success} | Skipped: ${skipped}`);
-
-          setLoading(false);
         },
       });
 
