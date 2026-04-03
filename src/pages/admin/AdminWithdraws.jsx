@@ -20,6 +20,11 @@ export default function AdminWithdraws() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortType, setSortType] = useState("latest");
 
+  // ✅ NEW STATES (ONLY ADDITION)
+  const [rejectModal, setRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [selectedReq, setSelectedReq] = useState(null);
+
   const fetchRequests = async () => {
     try {
       const snap = await getDocs(collection(db, "withdrawRequests"));
@@ -52,7 +57,6 @@ export default function AdminWithdraws() {
         status: "processing",
       });
 
-      // 🔥 FIX: USE UID DIRECTLY (ONLY CHANGE)
       const userRef = doc(db, "users", req.uid);
 
       if (!req.uid) {
@@ -61,7 +65,6 @@ export default function AdminWithdraws() {
         return;
       }
 
-      // ✅ FIXED BLOCK
       const userSnap = await getDoc(userRef);
 
       if (!userSnap.exists()) {
@@ -71,15 +74,10 @@ export default function AdminWithdraws() {
 
       const currentBalance = userSnap.data().walletBalance || 0;
 
-      console.log("💰 BEFORE:", currentBalance);
-
       await updateDoc(userRef, {
         walletBalance: currentBalance - req.amount,
       });
 
-      console.log("💰 AFTER:", currentBalance - req.amount);
-
-      // 🔔 NOTIFICATION
       await addDoc(collection(db, "notifications"), {
         userId: req.userId,
         target: req.userId,
@@ -124,21 +122,29 @@ export default function AdminWithdraws() {
     }
   };
 
-  // ❌ REJECT
-  const handleReject = async (req) => {
+  // ❌ OPEN MODAL (REPLACED PROMPT)
+  const openRejectModal = (req) => {
+    setSelectedReq(req);
+    setRejectModal(true);
+  };
+
+  // ❌ CONFIRM REJECT
+  const confirmReject = async () => {
+    if (!rejectReason) {
+      toast.error("Please enter reason");
+      return;
+    }
+
+    const req = selectedReq;
+
     try {
-      const comment = prompt("Enter reason for rejection:");
-
-      if (!comment) return;
-
       const ref = doc(db, "withdrawRequests", req.id);
 
       await updateDoc(ref, {
         status: "rejected",
-        adminComment: comment,
+        adminComment: rejectReason,
       });
 
-      // 💰 REFUND
       if (req.status === "processing") {
         const userRef = doc(db, "users", req.uid);
 
@@ -147,13 +153,9 @@ export default function AdminWithdraws() {
         if (userSnap.exists()) {
           const currentBalance = userSnap.data().walletBalance || 0;
 
-          console.log("💰 REFUND BEFORE:", currentBalance);
-
           await updateDoc(userRef, {
             walletBalance: currentBalance + req.amount,
           });
-
-          console.log("💰 REFUND AFTER:", currentBalance + req.amount);
         }
       }
 
@@ -161,7 +163,7 @@ export default function AdminWithdraws() {
         userId: req.userId,
         target: req.userId,
         title: "Withdraw Rejected ❌",
-        message: `Your withdraw request was rejected. Reason: ${comment}`,
+        message: `Your withdraw request was rejected. Reason: ${rejectReason}`,
         type: "withdraw",
         seen: false,
         createdAt: serverTimestamp(),
@@ -169,6 +171,8 @@ export default function AdminWithdraws() {
 
       toast("❌ Rejected");
 
+      setRejectModal(false);
+      setRejectReason("");
       fetchRequests();
     } catch (err) {
       console.error(err);
@@ -287,7 +291,7 @@ export default function AdminWithdraws() {
                   </button>
 
                   <button
-                    onClick={() => handleReject(req)}
+                    onClick={() => openRejectModal(req)}
                     className="bg-red-600 text-white px-3 py-1 rounded"
                   >
                     Reject
@@ -305,7 +309,7 @@ export default function AdminWithdraws() {
                   </button>
 
                   <button
-                    onClick={() => handleReject(req)}
+                    onClick={() => openRejectModal(req)}
                     className="bg-red-600 text-white px-3 py-1 rounded"
                   >
                     Reject
@@ -316,6 +320,43 @@ export default function AdminWithdraws() {
             </div>
           ))}
 
+        </div>
+      )}
+
+      {/* ✅ NEW MODAL */}
+      {rejectModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl w-[90%] max-w-md shadow-xl">
+
+            <h3 className="text-lg font-semibold mb-3">
+              Reject Withdrawal ❌
+            </h3>
+
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Enter reason for rejection..."
+              className="w-full border p-2 rounded mb-4"
+              rows={3}
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setRejectModal(false)}
+                className="px-4 py-2 border rounded"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={confirmReject}
+                className="bg-red-600 text-white px-4 py-2 rounded"
+              >
+                Reject
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
 
