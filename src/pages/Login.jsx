@@ -157,16 +157,24 @@ export default function Login() {
       }
 
     } catch (error) {
-      if (error.code === "auth/user-not-found") {
-        toast("Account not found");
-      } else if (error.code === "auth/wrong-password") {
-        toast("Incorrect password");
-      } else if (error.code === "auth/invalid-email") {
-        toast("Enter valid email");
-      } else {
-        toast(error.message);
-      }
-    }
+  console.log("Login Error:", error.code);
+
+  if (
+    error.code === "auth/invalid-credential" ||
+    error.code === "auth/wrong-password"
+  ) {
+    toast("Invalid email or password ❌");
+  } 
+  else if (error.code === "auth/user-not-found") {
+    toast("Account not found ❌");
+  } 
+  else if (error.code === "auth/invalid-email") {
+    toast("Please enter a valid email ❌");
+  } 
+  else {
+    toast("Login failed. Please try again ❌");
+  }
+}
   };
 
   return (

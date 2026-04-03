@@ -111,36 +111,60 @@ export default function AdminWithdraws() {
     }
   };
 
-  // ❌ REJECT WITH COMMENT
-  const handleReject = async (req) => {
-    try {
-      const comment = prompt("Enter reason for rejection:");
 
-      if (!comment) return;
 
-      const ref = doc(db, "withdrawRequests", req.id);
+    const handleReject = async (req) => {
+  try {
+    const comment = prompt("Enter reason for rejection:");
 
-      await updateDoc(ref, {
-        status: "rejected",
-        adminComment: comment,
-      });
+    if (!comment) return;
 
-      // ✅ NOTIFICATION
-      await addDoc(collection(db, "notifications"), {
-        userId: req.userId,
-        target: req.userId,
-        title: "Withdraw Rejected ❌",
-        message: `Your withdraw request was rejected. Reason: ${comment}`,
-        type: "withdraw",
-        seen: false,
-        createdAt: serverTimestamp(),
-      });
+    const ref = doc(db, "withdrawRequests", req.id);
 
-      fetchRequests();
-    } catch (err) {
-      console.error(err);
+    await updateDoc(ref, {
+      status: "rejected",
+      adminComment: comment,
+    });
+
+    // ✅ 🔥 REFUND ONLY IF ALREADY DEDUCTED (processing case)
+    if (req.status === "processing") {
+      const q = query(
+        collection(db, "users"),
+        where("userId", "==", req.userId)
+      );
+
+      const snap = await getDocs(q);
+
+      if (!snap.empty) {
+        const userDoc = snap.docs[0];
+        const userRef = doc(db, "users", userDoc.id);
+
+        const currentBalance = userDoc.data().walletBalance || 0;
+
+        await updateDoc(userRef, {
+          walletBalance: currentBalance + req.amount,
+        });
+      }
     }
-  };
+
+    // ✅ NOTIFICATION
+    await addDoc(collection(db, "notifications"), {
+      userId: req.userId,
+      target: req.userId,
+      title: "Withdraw Rejected ❌",
+      message: `Your withdraw request was rejected. Reason: ${comment}`,
+      type: "withdraw",
+      seen: false,
+      createdAt: serverTimestamp(),
+    });
+
+    toast("❌ Rejected");
+
+    fetchRequests();
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";

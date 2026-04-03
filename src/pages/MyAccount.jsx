@@ -23,6 +23,10 @@ export default function MyAccount() {
   const [userData, setUserData] = useState({});
   const [newPassword, setNewPassword] = useState("");
 
+  // ✅ NEW STATES (ONLY ADDITION)
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+
   const [form, setForm] = useState({
     phone: "",
     dob: "",
@@ -53,7 +57,6 @@ export default function MyAccount() {
     return () => unsubscribe();
   }, []);
 
-  // 🔥 DUPLICATE PHONE CHECK (NEW)
   const checkPhoneExists = async (phone, currentUserId) => {
     const q = query(collection(db, "users"), where("phone", "==", phone));
     const snap = await getDocs(q);
@@ -69,7 +72,6 @@ export default function MyAccount() {
     return exists;
   };
 
-  // 🔹 Email Verification
   const handleVerifyEmail = async () => {
     if (user && !user.emailVerified) {
       await sendEmailVerification(user);
@@ -79,18 +81,21 @@ export default function MyAccount() {
     }
   };
 
-  // 🔹 Change Password (FIXED 🔥)
+  // 🔥 UPDATED (NO PROMPT)
   const handleChangePassword = async () => {
     if (!newPassword) {
       toast("Enter new password");
       return;
     }
 
-    try {
-      const currentPassword = prompt("Enter your current password");
+    setShowPasswordModal(true);
+  };
 
+  // 🔥 NEW CONFIRM FUNCTION
+  const confirmPasswordChange = async () => {
+    try {
       if (!currentPassword) {
-        toast("Current password required");
+        toast("Enter current password");
         return;
       }
 
@@ -106,18 +111,19 @@ export default function MyAccount() {
       toast.success("Password updated successfully ✅");
 
       setNewPassword("");
+      setCurrentPassword("");
+      setShowPasswordModal(false);
+
     } catch (err) {
       console.error(err);
-      toast.error(err.message || "Error updating password");
+      toast.error("Incorrect current password ❌");
     }
   };
 
-  // 🔥 HANDLE INPUT CHANGE
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // 🔥 SAVE DETAILS
   const handleSave = async () => {
     if (!/^[0-9]{10}$/.test(form.phone)) {
       toast("Phone must be exactly 10 digits");
@@ -190,56 +196,43 @@ export default function MyAccount() {
         <div className="bg-white rounded-xl shadow p-4 mb-6 space-y-4">
           <h2 className="font-semibold text-lg">Personal Details</h2>
 
-          <div>
-            <label className="text-sm text-gray-600">Phone Number</label>
-            <input
-              type="text"
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              maxLength={10}
-              placeholder="Enter 10 digit phone"
-              className="w-full p-2 border rounded-md mt-1"
-            />
-          </div>
+          <input
+            type="text"
+            name="phone"
+            value={form.phone}
+            onChange={handleChange}
+            maxLength={10}
+            className="w-full p-2 border rounded-md"
+          />
 
-          <div>
-            <label className="text-sm text-gray-600">Date of Birth</label>
-            <input
-              type="date"
-              name="dob"
-              value={form.dob}
-              onChange={handleChange}
-              className="w-full p-2 border rounded-md mt-1"
-            />
-          </div>
+          <input
+            type="date"
+            name="dob"
+            value={form.dob}
+            onChange={handleChange}
+            className="w-full p-2 border rounded-md"
+          />
 
-          <div>
-            <label className="text-sm text-gray-600">Gender</label>
-            <select
-              name="gender"
-              value={form.gender}
-              onChange={handleChange}
-              className="w-full p-2 border rounded-md mt-1"
-            >
-              <option value="">Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
+          <select
+            name="gender"
+            value={form.gender}
+            onChange={handleChange}
+            className="w-full p-2 border rounded-md"
+          >
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
 
           <button
             onClick={handleSave}
-            className="w-full bg-primary text-white py-2 rounded-md font-semibold hover:opacity-90"
+            className="w-full bg-primary text-white py-2 rounded-md"
           >
             Save Details
           </button>
         </div>
 
         <div className="bg-white rounded-xl shadow p-4 space-y-3">
-          <h2 className="font-semibold">Change Password</h2>
-
           <input
             type="password"
             placeholder="New Password"
@@ -257,6 +250,49 @@ export default function MyAccount() {
         </div>
 
       </div>
+
+      {/* 🔥 PROFESSIONAL MODAL */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-[90%] max-w-sm shadow-lg">
+
+            <h2 className="text-lg font-semibold mb-2">
+              🔒 Confirm Password
+            </h2>
+
+            <p className="text-sm text-gray-500 mb-4">
+              Enter your current password to continue
+            </p>
+
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full p-2 border rounded-md mb-4"
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setCurrentPassword("");
+                }}
+                className="px-4 py-2 bg-gray-200 rounded"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={confirmPasswordChange}
+                className="px-4 py-2 bg-primary text-white rounded"
+              >
+                Confirm
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
