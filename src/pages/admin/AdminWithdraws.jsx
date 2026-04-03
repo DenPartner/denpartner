@@ -10,6 +10,7 @@ import {
   where,
   addDoc,
   serverTimestamp,
+  getDoc
 } from "firebase/firestore";
 
 export default function AdminWithdraws() {
@@ -43,13 +44,42 @@ export default function AdminWithdraws() {
   // 🔄 PROCESSING
   const handleProcessing = async (req) => {
     try {
+      console.log("👉 Processing user:", req.userId);
+
       const ref = doc(db, "withdrawRequests", req.id);
 
       await updateDoc(ref, {
         status: "processing",
       });
 
-      // ✅ NOTIFICATION
+      // 🔥 FIX: USE UID DIRECTLY (ONLY CHANGE)
+      const userRef = doc(db, "users", req.uid);
+
+      if (!req.uid) {
+        console.log("❌ USER UID NOT FOUND");
+        toast.error("User not found");
+        return;
+      }
+
+      // ✅ FIXED BLOCK
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        console.log("❌ USER DOC NOT FOUND");
+        return;
+      }
+
+      const currentBalance = userSnap.data().walletBalance || 0;
+
+      console.log("💰 BEFORE:", currentBalance);
+
+      await updateDoc(userRef, {
+        walletBalance: currentBalance - req.amount,
+      });
+
+      console.log("💰 AFTER:", currentBalance - req.amount);
+
+      // 🔔 NOTIFICATION
       await addDoc(collection(db, "notifications"), {
         userId: req.userId,
         target: req.userId,
@@ -62,11 +92,12 @@ export default function AdminWithdraws() {
 
       fetchRequests();
     } catch (err) {
-      console.error(err);
+      console.error("🔥 ERROR:", err);
+      toast.error(err.message);
     }
   };
 
-  // ✅ MARK AS PAID
+  // ✅ PAID
   const handlePaid = async (req) => {
     try {
       const reqRef = doc(db, "withdrawRequests", req.id);
@@ -75,25 +106,6 @@ export default function AdminWithdraws() {
         status: "paid",
       });
 
-      const q = query(
-        collection(db, "users"),
-        where("userId", "==", req.userId)
-      );
-
-      const snap = await getDocs(q);
-
-      if (!snap.empty) {
-        const userDoc = snap.docs[0];
-        const userRef = doc(db, "users", userDoc.id);
-
-        const currentBalance = userDoc.data().walletBalance || 0;
-
-        await updateDoc(userRef, {
-          walletBalance: currentBalance - req.amount,
-        });
-      }
-
-      // ✅ NOTIFICATION
       await addDoc(collection(db, "notifications"), {
         userId: req.userId,
         target: req.userId,
@@ -108,63 +120,61 @@ export default function AdminWithdraws() {
       fetchRequests();
     } catch (err) {
       console.error(err);
+      toast.error(err.message);
     }
   };
 
+  // ❌ REJECT
+  const handleReject = async (req) => {
+    try {
+      const comment = prompt("Enter reason for rejection:");
 
+      if (!comment) return;
 
-    const handleReject = async (req) => {
-  try {
-    const comment = prompt("Enter reason for rejection:");
+      const ref = doc(db, "withdrawRequests", req.id);
 
-    if (!comment) return;
+      await updateDoc(ref, {
+        status: "rejected",
+        adminComment: comment,
+      });
 
-    const ref = doc(db, "withdrawRequests", req.id);
+      // 💰 REFUND
+      if (req.status === "processing") {
+        const userRef = doc(db, "users", req.uid);
 
-    await updateDoc(ref, {
-      status: "rejected",
-      adminComment: comment,
-    });
+        const userSnap = await getDoc(userRef);
 
-    // ✅ 🔥 REFUND ONLY IF ALREADY DEDUCTED (processing case)
-    if (req.status === "processing") {
-      const q = query(
-        collection(db, "users"),
-        where("userId", "==", req.userId)
-      );
+        if (userSnap.exists()) {
+          const currentBalance = userSnap.data().walletBalance || 0;
 
-      const snap = await getDocs(q);
+          console.log("💰 REFUND BEFORE:", currentBalance);
 
-      if (!snap.empty) {
-        const userDoc = snap.docs[0];
-        const userRef = doc(db, "users", userDoc.id);
+          await updateDoc(userRef, {
+            walletBalance: currentBalance + req.amount,
+          });
 
-        const currentBalance = userDoc.data().walletBalance || 0;
-
-        await updateDoc(userRef, {
-          walletBalance: currentBalance + req.amount,
-        });
+          console.log("💰 REFUND AFTER:", currentBalance + req.amount);
+        }
       }
+
+      await addDoc(collection(db, "notifications"), {
+        userId: req.userId,
+        target: req.userId,
+        title: "Withdraw Rejected ❌",
+        message: `Your withdraw request was rejected. Reason: ${comment}`,
+        type: "withdraw",
+        seen: false,
+        createdAt: serverTimestamp(),
+      });
+
+      toast("❌ Rejected");
+
+      fetchRequests();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message);
     }
-
-    // ✅ NOTIFICATION
-    await addDoc(collection(db, "notifications"), {
-      userId: req.userId,
-      target: req.userId,
-      title: "Withdraw Rejected ❌",
-      message: `Your withdraw request was rejected. Reason: ${comment}`,
-      type: "withdraw",
-      seen: false,
-      createdAt: serverTimestamp(),
-    });
-
-    toast("❌ Rejected");
-
-    fetchRequests();
-  } catch (err) {
-    console.error(err);
-  }
-};
+  };
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";

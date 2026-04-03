@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
 import {
   doc,
-  getDoc,
   setDoc,
   addDoc,
   collection,
@@ -10,6 +9,7 @@ import {
   getDocs,
   query,
   where,
+  onSnapshot   // ✅ ADDED
 } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -29,12 +29,11 @@ export default function Withdraw() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
+    const user = auth.currentUser;
+    if (!user) return;
 
-      const snap = await getDoc(doc(db, "users", user.uid));
-
+    // ✅ REALTIME FIX
+    const unsub = onSnapshot(doc(db, "users", user.uid), async (snap) => {
       if (snap.exists()) {
         const data = snap.data();
 
@@ -64,9 +63,9 @@ export default function Withdraw() {
 
         setHistory(historyData);
       }
-    };
+    });
 
-    fetchData();
+    return () => unsub();
   }, []);
 
   const formatDate = (timestamp) => {
@@ -110,7 +109,6 @@ export default function Withdraw() {
     return exists;
   };
 
-  // ✅ UPDATED BANK VALIDATION
   const saveBank = async () => {
     const user = auth.currentUser;
     if (!user) return;
@@ -160,7 +158,6 @@ export default function Withdraw() {
     if (!user || !userData) return;
     if (isSubmitting) return;
 
-    // ✅ VERIFY CHECK
     if (!user.emailVerified) {
       toast("Please verify your email first");
       navigate("/my-account");
@@ -169,7 +166,6 @@ export default function Withdraw() {
 
     const amt = Number(amount);
 
-    // ✅ VALIDATIONS BEFORE DB
     if (!amt || amt < 10) {
       toast("Minimum withdrawal is ₹10");
       return;
@@ -188,7 +184,6 @@ export default function Withdraw() {
     setIsSubmitting(true);
 
     try {
-      // ✅ DAILY LIMIT STRICT (MAX 3)
       const latestQuery = query(
         collection(db, "withdrawRequests"),
         where("userId", "==", userData.userId)
@@ -215,7 +210,6 @@ export default function Withdraw() {
         return;
       }
 
-      // ✅ CREATE REQUEST ONLY AFTER ALL CHECKS PASS
       await addDoc(collection(db, "withdrawRequests"), {
         userId: userData.userId,
         uid: user.uid,
@@ -224,27 +218,23 @@ export default function Withdraw() {
         status: "pending",
         createdAt: serverTimestamp(),
       });
+
       setAmount("");
 
       await addDoc(collection(db, "notifications"), {
-       userId: userData.userId,
+        userId: userData.userId,
         title: "Withdraw Requested 💸",
         message: `Your withdraw request of ₹${amt} is submitted.`,
         type: "withdraw",
         createdAt: serverTimestamp(),
       });
-      
 
-      const newBalance = wallet - amt;
-
-      
-
-      setWallet(newBalance);
-      setAmount("");
+      // ❌ REMOVED THIS BUG LINE:
+      // const newBalance = wallet - amt;
+      // setWallet(newBalance);
 
       toast("Withdraw request submitted ✅");
 
-      // refresh history
       const historyQuery = query(
         collection(db, "withdrawRequests"),
         where("userId", "==", userData.userId)
@@ -265,7 +255,7 @@ export default function Withdraw() {
       setHistory(historyData);
     } catch (err) {
       console.error(err);
-      toast("Withdraw request submitted ✅")
+      toast("Withdraw request submitted ✅");
     }
 
     setIsSubmitting(false);
@@ -305,66 +295,20 @@ export default function Withdraw() {
             Bank Details
           </h3>
 
-          <input
-            placeholder="Account Holder Name"
-            value={bank.name}
-            onChange={(e) =>
-              setBank({
-                ...bank,
-                name: e.target.value,
-              })
-            }
-            className="w-full mb-2 p-2 border rounded"
-          />
+          <input placeholder="Account Holder Name" value={bank.name} onChange={(e) => setBank({ ...bank, name: e.target.value })} className="w-full mb-2 p-2 border rounded" />
+          <input placeholder="Account Number" value={bank.accountNumber} onChange={(e) => setBank({ ...bank, accountNumber: e.target.value })} className="w-full mb-2 p-2 border rounded" />
+          <input placeholder="IFSC Code" value={bank.ifsc} onChange={(e) => setBank({ ...bank, ifsc: e.target.value })} className="w-full mb-2 p-2 border rounded" />
 
-          <input
-            placeholder="Account Number"
-            value={bank.accountNumber}
-            onChange={(e) =>
-              setBank({
-                ...bank,
-                accountNumber: e.target.value,
-              })
-            }
-            className="w-full mb-2 p-2 border rounded"
-          />
-
-          <input
-            placeholder="IFSC Code"
-            value={bank.ifsc}
-            onChange={(e) =>
-              setBank({
-                ...bank,
-                ifsc: e.target.value,
-              })
-            }
-            className="w-full mb-2 p-2 border rounded"
-          />
-
-          <button
-            onClick={saveBank}
-            className="w-full bg-gold py-2 rounded font-semibold"
-          >
+          <button onClick={saveBank} className="w-full bg-gold py-2 rounded font-semibold">
             Save Bank Details
           </button>
         </div>
 
         <div className="bg-white p-4 rounded-xl shadow mb-4">
-          <input
-            value={amount}
-            onChange={handleChange}
-            placeholder="Enter amount"
-            className="w-full mb-3 p-2 border rounded"
-          />
+          <input value={amount} onChange={handleChange} placeholder="Enter amount" className="w-full mb-3 p-2 border rounded" />
 
-          <button
-            onClick={handleWithdraw}
-            disabled={isSubmitting}
-            className="w-full bg-primary text-white py-2 rounded font-semibold disabled:opacity-50"
-          >
-            {isSubmitting
-              ? "Processing..."
-              : "Request Withdraw"}
+          <button onClick={handleWithdraw} disabled={isSubmitting} className="w-full bg-primary text-white py-2 rounded font-semibold disabled:opacity-50">
+            {isSubmitting ? "Processing..." : "Request Withdraw"}
           </button>
         </div>
 
@@ -376,15 +320,8 @@ export default function Withdraw() {
           {history.map((item) => (
             <div key={item.id} className="border-b py-3">
               <div className="flex justify-between mb-1">
-                <span className="font-semibold">
-                  ₹{item.amount}
-                </span>
-
-                <span
-                  className={`px-2 py-1 text-xs rounded ${getStatusColor(
-                    item.status
-                  )}`}
-                >
+                <span className="font-semibold">₹{item.amount}</span>
+                <span className={`px-2 py-1 text-xs rounded ${getStatusColor(item.status)}`}>
                   {item.status}
                 </span>
               </div>

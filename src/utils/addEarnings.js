@@ -18,12 +18,13 @@ export const addEarning = async (
       campaignId = null,
       type = "commission",
       source = "manual",
+      uid = null   // ✅ REQUIRED
     } = options;
 
     // 🔥 1. ADD TO EARNINGS COLLECTION
     await addDoc(collection(db, "earnings"), {
       userId,
-      uid: userId, // ✅ IMPORTANT FIX (for rules)
+      uid,
       campaignId,
       amount,
       type,
@@ -32,24 +33,32 @@ export const addEarning = async (
       createdAt: serverTimestamp(),
     });
 
-    // 🔥 2. UPDATE USER WALLET
-    await updateDoc(doc(db, "users", userId), {
+    // 🔥 2. UPDATE USER WALLET (FIXED USING UID)
+    if (!uid) {
+      console.log("❌ UID missing for earning");
+      return;
+    }
+
+    const userRef = doc(db, "users", uid);
+
+    await updateDoc(userRef, {
       walletBalance: increment(amount),
     });
 
-    // 🔥 3. ADD USER NOTIFICATION (VERY IMPORTANT FIX)
+    // 🔔 NOTIFICATION (UNCHANGED)
     await addDoc(collection(db, "notifications"), {
       userId,
-      target: userId, // keeps your existing filter logic working
+      target: userId,
       title: "New Earnings 💰",
       message: `You earned ₹${amount} from a campaign.`,
       type: "earning",
-      seen: false, // ✅ REQUIRED FIX
+      seen: false,
       createdAt: serverTimestamp(),
     });
 
     console.log("✅ Earning added:", {
       userId,
+      uid,
       amount,
       type,
       campaignId,
