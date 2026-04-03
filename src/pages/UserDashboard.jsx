@@ -19,84 +19,79 @@ export default function UserDashboard() {
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [totalClicks, setTotalClicks] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
-  const [totalInstalls, setTotalInstalls] = useState(0); // ✅ NEW
+  const [totalInstalls, setTotalInstalls] = useState(0);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
+      if (!currentUser) {
+        navigate("/login");
+        return;
+      }
 
-        try {
-          // 🔥 USER DATA
-          const userRef = doc(db, "users", currentUser.uid);
-          const userSnap = await getDoc(userRef);
+      setUser(currentUser);
 
-          let userData = null;
+      try {
+        // 🔥 USER DATA
+        const userRef = doc(db, "users", currentUser.uid);
+        const userSnap = await getDoc(userRef);
 
-          if (userSnap.exists()) {
-            userData = userSnap.data();
-            setWallet(userData.walletBalance || 0);
-          }
+        let userData = null;
 
-          const userId = userData?.userId;
-
-          // 🔥 CLICKS
-          const clickSnap = await getDocs(collection(db, "clicks"));
-
-          const userClicks = clickSnap.docs.filter(
-            (doc) => doc.data().userId === userId
-          );
-
-          setTotalClicks(userClicks.length);
-
-          // 🔥 EARNINGS (CSV BASED)
-          const earnQuery = query(
-            collection(db, "earnings"),
-            where("userId", "==", userId)
-          );
-
-          const earnSnap = await getDocs(earnQuery);
-
-          let todayTotal = 0;
-          let orders = 0;
-          let installs = 0;
-
-          const today = new Date().toDateString();
-
-          earnSnap.docs.forEach((doc) => {
-            const e = doc.data();
-
-            // ✅ TODAY EARNINGS
-            if (e.createdAt) {
-              const d = e.createdAt.toDate().toDateString();
-              if (d === today) {
-                todayTotal += e.amount || 0;
-              }
-            }
-
-            // ✅ ORDER COUNT
-            if (e.earnType === "order") {
-              orders++;
-            }
-
-            // ✅ INSTALL COUNT
-            if (e.earnType === "install") {
-              installs++;
-            }
-          });
-
-          setTodayEarnings(todayTotal);
-          setTotalOrders(orders);
-          setTotalInstalls(installs);
-
-        } catch (err) {
-          console.error("Dashboard error:", err);
+        if (userSnap.exists()) {
+          userData = userSnap.data();
+          setWallet(userData.walletBalance || 0);
         }
 
-      } else {
-        navigate("/login");
+        const userId = userData?.userId;
+
+        // 🔥 CLICKS
+        const clickSnap = await getDocs(collection(db, "clicks"));
+        const userClicks = clickSnap.docs
+          .map(doc => doc.data())
+          .filter(c => c.userId === userId);
+
+        setTotalClicks(userClicks.length);
+
+        // 🔥 EARNINGS
+        const earnQuery = query(
+          collection(db, "earnings"),
+          where("userId", "==", userId)
+        );
+
+        const earnSnap = await getDocs(earnQuery);
+
+        let todayTotal = 0;
+        let orders = 0;
+        let installs = 0;
+
+        const today = new Date().toDateString();
+
+        earnSnap.docs.forEach((doc) => {
+          const e = doc.data();
+
+          // ✅ TODAY EARNINGS
+          if (e.createdAt && e.createdAt.toDate) {
+            const d = e.createdAt.toDate().toDateString();
+            if (d === today) {
+              todayTotal += e.amount || 0;
+            }
+          }
+
+          // 🔥 FIX: support both type & earnType
+          const earnType = e.type || e.earnType || "order";
+
+          if (earnType === "order") orders++;
+          if (earnType === "install") installs++;
+        });
+
+        setTodayEarnings(todayTotal);
+        setTotalOrders(orders);
+        setTotalInstalls(installs);
+
+      } catch (err) {
+        console.error("Dashboard error:", err);
       }
 
       setLoading(false);

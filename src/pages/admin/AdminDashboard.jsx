@@ -66,9 +66,14 @@ export default function AdminDashboard() {
 
   const filteredUsers = filterByDate(users);
   const filteredEarnings = filterByDate(earnings);
-const filteredWithdraws = filterByDate(withdraws);
-const filteredClicks = filterByDate(clicks);
-  const totalEarnings = earnings.reduce((a, b) => a + (b.amount || 0), 0);
+  const filteredWithdraws = filterByDate(withdraws);
+  const filteredClicks = filterByDate(clicks);
+
+  const totalUserEarnings = earnings.reduce((a, b) => a + (b.amount || 0), 0);
+  const totalPlatformProfit = earnings.reduce(
+    (a, b) => a + ((b.originalAmount || 0) - (b.amount || 0)),
+    0
+  );
 
   const toggleBlockUser = async (user) => {
     const ref = doc(db, "users", user.id);
@@ -122,7 +127,8 @@ const filteredClicks = filterByDate(clicks);
       {/* CARDS */}
       <div style={cardGrid}>
         <Card title="Users" value={filteredUsers.length} active={activeTab==="users"} onClick={()=>setActiveTab("users")} />
-        <Card title="Earnings" value={`₹${totalEarnings}`} active={activeTab==="earnings"} onClick={()=>setActiveTab("earnings")} />
+        <Card title="User Earnings" value={`₹${totalUserEarnings}`} active={activeTab==="earnings"} onClick={()=>setActiveTab("earnings")} />
+        <Card title="Platform Profit" value={`₹${totalPlatformProfit}`} active={activeTab==="profit"} onClick={()=>setActiveTab("profit")} />
         <Card title="Withdraw" value={withdraws.length} active={activeTab==="withdraw"} onClick={()=>setActiveTab("withdraw")} />
         <Card title="Clicks" value={clicks.length} active={activeTab==="clicks"} onClick={()=>setActiveTab("clicks")} />
         <Card title="Signup" value={filteredUsers.length} active={activeTab==="signup"} onClick={()=>setActiveTab("signup")} />
@@ -136,20 +142,6 @@ const filteredClicks = filterByDate(clicks);
           onChange={(e)=>setSearch(e.target.value)}
           style={searchStyle}
         />
-      )}
-
-      {/* RECENT ACTIVITY */}
-      {!activeTab && (
-        <div style={boxStyle}>
-          <h3 style={{ marginBottom: 10, color: "#14532D" }}>Recent Activity</h3>
-
-          {withdraws.slice(-5).reverse().map((w,i)=>(
-            <div key={i} style={rowStyle}>
-              <span>{w.userId} withdraw</span>
-              <span>₹{w.amount} ({w.status})</span>
-            </div>
-          ))}
-        </div>
       )}
 
       {/* USERS */}
@@ -175,80 +167,88 @@ const filteredClicks = filterByDate(clicks);
             ))}
         </div>
       )}
+
       {/* EARNINGS */}
-{activeTab==="earnings" && (
-  <div style={boxStyle}>
-    {filteredEarnings
-      .filter(e => e.userId?.toLowerCase().includes(search.toLowerCase()))
-      .map((e,i)=>(
-        <div key={i} style={rowStyle}>
-          <span>{e.userId}</span>
-          <span>₹{e.amount}</span>
+      {activeTab==="earnings" && (
+        <div style={boxStyle}>
+          {filteredEarnings
+            .filter(e => e.userId?.toLowerCase().includes(search.toLowerCase()))
+            .map((e,i)=>(
+              <div key={i} style={rowStyle}>
+                <span>{e.userId}</span>
+                <span>
+                  ₹{e.amount} (₹{e.originalAmount || 0} | {e.commissionPercent || 0}%)
+                </span>
+              </div>
+            ))}
         </div>
-      ))}
-  </div>
-)}
+      )}
 
-{/* WITHDRAW */}
-{activeTab==="withdraw" && (
-  <div style={boxStyle}>
-    {filteredWithdraws
-      .filter(w => w.userId?.toLowerCase().includes(search.toLowerCase()))
-      .map((w,i)=>(
-        <div key={i} style={rowStyle}>
-          <span>{w.userId}</span>
-          <span>₹{w.amount} ({w.status})</span>
+      {/* PROFIT */}
+      {activeTab==="profit" && (
+        <div style={boxStyle}>
+          {filteredEarnings.map((e,i)=>(
+            <div key={i} style={rowStyle}>
+              <span>{e.userId}</span>
+              <span>₹{(e.originalAmount || 0) - (e.amount || 0)}</span>
+            </div>
+          ))}
         </div>
-      ))}
-  </div>
-)}
+      )}
 
-{/* CLICKS */}
-{activeTab==="clicks" && (
-  <div style={boxStyle}>
-    {filteredClicks
-      .filter(c => c.userId?.toLowerCase().includes(search.toLowerCase()))
-      .map((c,i)=>(
-        <div key={i} style={rowStyle}>
-          <span>{c.userId}</span>
-          <span>Click</span>
+      {/* WITHDRAW */}
+      {activeTab==="withdraw" && (
+        <div style={boxStyle}>
+          {filteredWithdraws
+            .filter(w => w.userId?.toLowerCase().includes(search.toLowerCase()))
+            .map((w,i)=>(
+              <div key={i} style={rowStyle}>
+                <span>{w.userId}</span>
+                <span>₹{w.amount} ({w.status})</span>
+              </div>
+            ))}
         </div>
-      ))}
-  </div>
-)}
+      )}
 
-{/* SIGNUP */}
-{activeTab==="signup" && (
-  <div style={boxStyle}>
-    {filteredUsers
-      .filter(u => u.userId?.toLowerCase().includes(search.toLowerCase()))
-      .map((u,i)=>(
-        <div key={i} style={{
-          padding:"12px 0",
-          borderBottom:"1px solid #eee",
-          display:"flex",
-          flexDirection:"column",
-          gap:4
-        }}>
-          <span style={{
-            fontWeight:600,
-            color:"#14532D"
-          }}>
-            {u.userId}
-          </span>
-
-          <span style={{
-            fontSize:12,
-            color:"#6C757D",
-            wordBreak:"break-all"
-          }}>
-            {u.email}
-          </span>
+      {/* CLICKS */}
+      {activeTab==="clicks" && (
+        <div style={boxStyle}>
+          {filteredClicks
+            .filter(c => c.userId?.toLowerCase().includes(search.toLowerCase()))
+            .map((c,i)=>(
+              <div key={i} style={rowStyle}>
+                <span>{c.userId}</span>
+                <span>{c.campaignId} | {c.clickId}</span>
+              </div>
+            ))}
         </div>
-      ))}
-  </div>
-)}
-      {/* 🔥 VIEW POPUP */}
+      )}
+
+      {/* SIGNUP */}
+      {activeTab==="signup" && (
+        <div style={boxStyle}>
+          {filteredUsers
+            .filter(u => u.userId?.toLowerCase().includes(search.toLowerCase()))
+            .map((u,i)=>(
+              <div key={i} style={{
+                padding:"12px 0",
+                borderBottom:"1px solid #eee",
+                display:"flex",
+                flexDirection:"column",
+                gap:4
+              }}>
+                <span style={{ fontWeight:600, color:"#14532D" }}>
+                  {u.userId}
+                </span>
+                <span style={{ fontSize:12, color:"#6C757D", wordBreak:"break-all" }}>
+                  {u.email}
+                </span>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {/* VIEW POPUP */}
       {selectedUser && (
         <div style={popupOverlay}>
           <div style={popup}>
@@ -263,7 +263,7 @@ const filteredClicks = filterByDate(clicks);
         </div>
       )}
 
-      {/* 🔥 EDIT POPUP */}
+      {/* EDIT POPUP */}
       {editUser && (
         <div style={popupOverlay}>
           <div style={popup}>
@@ -293,7 +293,7 @@ const filteredClicks = filterByDate(clicks);
   );
 }
 
-/* 🔥 FIXED CSS */
+/* CSS SAME AS YOUR FILE */
 
 const page = {
   width:"100%",

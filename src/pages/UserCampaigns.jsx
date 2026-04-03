@@ -151,8 +151,19 @@ else if (sort === "offer50") {
   };
 
  const handleCopy = (item) => {
-  const link = generateLink(item);
-  if (!link) return;
+  if (!userId) return;
+
+const clickId = Date.now().toString();
+
+// 🔥 SAVE CLICK (IMPORTANT)
+addDoc(collection(db, "clicks"), {
+  clickId,
+  userId,
+  campaignId: item.id,
+  createdAt: serverTimestamp(),
+});
+
+const link = `${window.location.origin}/r/${item.id}-${userId}-${clickId}`;
 
   let finalPrice = item.price;
 
@@ -176,8 +187,19 @@ ${link}`;
 };
 
   const handleShare = (item) => {
-  const link = generateLink(item);
-  if (!link) return;
+  if (!userId) return;
+
+const clickId = Date.now().toString();
+
+// 🔥 SAVE CLICK (IMPORTANT)
+addDoc(collection(db, "clicks"), {
+  clickId,
+  userId,
+  campaignId: item.id,
+  createdAt: serverTimestamp(),
+});
+
+const link = `${window.location.origin}/r/${item.id}-${userId}-${clickId}`;
 
   let finalPrice = item.price;
 

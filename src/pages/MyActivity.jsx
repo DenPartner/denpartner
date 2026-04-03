@@ -1,4 +1,3 @@
-// usermyactivity
 import { useEffect, useState } from "react";
 import { db, auth } from "../firebase";
 import {
@@ -14,7 +13,6 @@ export default function MyActivity() {
   const [activities, setActivities] = useState([]);
   const [userId, setUserId] = useState("");
 
-  // 🔹 GET USER ID (DEN01, DEN02...)
   useEffect(() => {
     const fetchUser = async () => {
       const user = auth.currentUser;
@@ -36,20 +34,21 @@ export default function MyActivity() {
 
     const fetchActivity = async () => {
       try {
-        // 🔥 CAMPAIGNS
+
+        // 🔥 CAMPAIGNS MAP
         const campaignSnap = await getDocs(collection(db, "campaigns"));
         const campaigns = {};
         campaignSnap.docs.forEach(doc => {
           campaigns[doc.id] = { id: doc.id, ...doc.data() };
         });
 
-        // 🔥 CLICKS
+        // 🔥 USER CLICKS
         const clickSnap = await getDocs(collection(db, "clicks"));
         const userClicks = clickSnap.docs
           .map(doc => doc.data())
           .filter(c => c.userId === userId);
 
-        // 🔥 EARNINGS
+        // 🔥 USER EARNINGS
         const earnSnap = await getDocs(
           query(collection(db, "earnings"), where("userId", "==", userId))
         );
@@ -57,8 +56,10 @@ export default function MyActivity() {
 
         const activityMap = {};
 
-        // 🔥 CLICKS
+        // 🔥 PROCESS CLICKS
         userClicks.forEach(c => {
+          if (!c.campaignId) return;
+
           if (!activityMap[c.campaignId]) {
             activityMap[c.campaignId] = {
               clicks: 0,
@@ -71,10 +72,11 @@ export default function MyActivity() {
           activityMap[c.campaignId].clicks += 1;
         });
 
-        // 🔥 EARNINGS
+        // 🔥 PROCESS EARNINGS
         earnings.forEach(e => {
           let campaignId = e.campaignId;
 
+          // fallback using clickId
           if (!campaignId && e.clickId) {
             const click = userClicks.find(c => c.clickId === e.clickId);
             if (click) campaignId = click.campaignId;
@@ -91,21 +93,24 @@ export default function MyActivity() {
             };
           }
 
-          activityMap[campaignId].earnings += e.amount;
+          activityMap[campaignId].earnings += e.amount || 0;
 
-          if (e.earnType === "order") {
+          const earnType = e.type || campaigns[campaignId]?.earnType || "order";
+
+          if (earnType === "order") {
             activityMap[campaignId].orders += 1;
           }
 
-          if (e.earnType === "install") {
+          if (earnType === "install") {
             activityMap[campaignId].installs += 1;
           }
         });
 
+        // 🔥 FINAL FORMAT
         const finalData = Object.keys(activityMap).map(id => ({
           id,
           product: campaigns[id]?.title || "Unknown",
-          earnType: campaigns[id]?.earnType,
+          earnType: campaigns[id]?.earnType || "order",
           ...activityMap[id],
           date: new Date().toLocaleDateString(),
         }));
@@ -173,7 +178,7 @@ export default function MyActivity() {
 
                 {item.earnType === "click" && (
                   <div>
-                    <p className="text-textSub">Earning Type</p>
+                    <p className="text-textSub">Type</p>
                     <p className="font-semibold">Per Click</p>
                   </div>
                 )}

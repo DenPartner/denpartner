@@ -18,22 +18,30 @@ export const addEarning = async (
       campaignId = null,
       type = "commission",
       source = "manual",
-      uid = null   // ✅ REQUIRED
+      uid = null,
+      clickId = null,
+      orderId = null,
+      meta = {},
+      commissionPercent = null,   // 🔥 NEW
+      originalAmount = null       // 🔥 NEW
     } = options;
 
-    // 🔥 1. ADD TO EARNINGS COLLECTION
     await addDoc(collection(db, "earnings"), {
       userId,
       uid,
       campaignId,
+      clickId,
+      orderId,
       amount,
+      originalAmount,        // 🔥 NEW
+      commissionPercent,     // 🔥 NEW
       type,
       source,
+      meta,
       status: "completed",
       createdAt: serverTimestamp(),
     });
 
-    // 🔥 2. UPDATE USER WALLET (FIXED USING UID)
     if (!uid) {
       console.log("❌ UID missing for earning");
       return;
@@ -45,7 +53,6 @@ export const addEarning = async (
       walletBalance: increment(amount),
     });
 
-    // 🔔 NOTIFICATION (UNCHANGED)
     await addDoc(collection(db, "notifications"), {
       userId,
       target: userId,
@@ -60,8 +67,10 @@ export const addEarning = async (
       userId,
       uid,
       amount,
-      type,
       campaignId,
+      clickId,
+      orderId,
+      commissionPercent
     });
 
   } catch (err) {

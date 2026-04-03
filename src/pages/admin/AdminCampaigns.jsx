@@ -70,36 +70,38 @@ const [editData, setEditData] = useState({});
     if (editId) {
       // 🔥 UPDATE
       await updateDoc(doc(db, "campaigns", editId), {
-        title,
-        price: Number(price),
-        offer,
-        description,
-        image,
-        url,
-        category,
-        commissionType,
-        commissionValue: Number(commissionValue),
-        earnType,
-        updatedAt: new Date()
-      });
+  title,
+  price: Number(price),
+  offer,
+  description,
+  image,
+  url,
+  trackingParam: "subid", // ✅ ADD THIS LINE
+  category,
+  commissionType,
+  commissionValue: Number(commissionValue),
+  earnType,
+  updatedAt: new Date()
+});
 
       toast("Campaign updated ✏️");
     } else {
       // 🔥 ADD
       await addDoc(collection(db, "campaigns"), {
-        title,
-        price: Number(price),
-        offer,
-        description,
-        image,
-        url,
-        category,
-        commissionType,
-        commissionValue: Number(commissionValue),
-        earnType,
-        status: "active",
-        createdAt: new Date(),
-      });
+  title,
+  price: Number(price),
+  offer,
+  description,
+  image,
+  url,
+  trackingParam: "subid", // ✅ ADD THIS LINE
+  category,
+  commissionType,
+  commissionValue: Number(commissionValue),
+  earnType,
+  status: "active",
+  createdAt: new Date(),
+});
 
       toast("Campaign added ✅");
     }

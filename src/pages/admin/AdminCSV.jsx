@@ -88,7 +88,7 @@ export default function AdminCSV() {
 
             for (let row of rows) {
 
-              const rawSubId = findField(row, ["sub", "aff", "uid"]);
+              const rawSubId = findField(row, ["subid","sub", "aff", "uid"]);
               const commissionRaw = findField(row, [
                 "commission",
                 "revenue",
@@ -114,10 +114,12 @@ export default function AdminCSV() {
               let clickId = null;
 
               if (rawSubId.includes("-")) {
-                const parts = rawSubId.split("-");
-                userId = parts[0];
-                clickId = parts[1];
-              }
+  const parts = rawSubId.split("-");
+  userId = parts[0];
+
+
+  clickId = parts.slice(1).join("-");
+}
 
               const commission =
                 parseFloat(
