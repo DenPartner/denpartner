@@ -6,10 +6,10 @@ export default function Campaigns() {
   const navigate = useNavigate();
 
   const campaigns = [
-    { title: "Flipkart Saree Sale", desc: "Promote trending sarees.", type: "order" },
-    { title: "Amazon Mobile Deals", desc: "Share mobile offers.", type: "order" },
-    { title: "Meesho Fashion", desc: "Promote fashion products.", type: "click" },
-    { title: "Ajio Clothing", desc: "Share branded clothes.", type: "order" },
+    { title: "Saree Sale", desc: "Promote trending sarees.", type: "order" },
+    { title: "Mobile Deals", desc: "Share mobile offers.", type: "order" },
+    { title: "Fashion", desc: "Promote fashion products.", type: "click" },
+    { title: "Home&Kitchen", desc: "Share Home&Kitchen items", type: "order" },
     { title: "App Install Offer", desc: "Earn from installs.", type: "install" },
     { title: "Electronics Deals", desc: "Promote gadgets.", type: "order" },
   ];
