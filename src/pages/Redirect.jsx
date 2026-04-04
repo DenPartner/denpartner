@@ -5,7 +5,8 @@ import toast from "react-hot-toast";
 import {
   doc,
   getDoc,
-  setDoc, // ✅ updated
+  addDoc, // ✅ changed
+  collection, // ✅ added
   serverTimestamp,
 } from "firebase/firestore";
 
@@ -15,14 +16,20 @@ export default function Redirect() {
   useEffect(() => {
     const handleRedirect = async () => {
       try {
-        // ✅ SAFETY CHECK
-        if (!code || code.split("-").length < 3) {
+        // ✅ SAFETY CHECK (now expects campaignId-userId)
+        if (!code || code.split("-").length < 2) {
           toast("Invalid link");
           return;
         }
 
-        // 🔥 SPLIT campaignId + userId + clickId
-        const [campaignId, userId, clickId] = code.split("-");
+        // 🔥 SPLIT campaignId + userId ONLY
+        const parts = code.split("-");
+        const campaignId = parts[0];
+        const userId = parts[1];
+
+        // 🔥 GENERATE UNIQUE CLICK ID (VERY IMPORTANT)
+        const clickId =
+          Date.now() + Math.random().toString(36).substring(2, 6);
 
         // 🔥 GET CAMPAIGN DATA
         const docRef = doc(db, "campaigns", campaignId);
@@ -38,24 +45,22 @@ export default function Redirect() {
         // 🔥 TRACKING PARAM
         const trackingParam = data.trackingParam || "subid";
 
-        const separator = data.url.includes("?") ? "&" : "?";
+        // ✅ SAFE URL BUILD (no duplicate ? & issues)
+        const urlObj = new URL(data.url);
 
         // ✅ PASS userId + clickId
         const subidValue = `${userId}-${clickId}`;
+        urlObj.searchParams.set(trackingParam, subidValue);
 
-        const finalUrl = `${data.url}${separator}${trackingParam}=${subidValue}`;
+        const finalUrl = urlObj.toString();
 
-        // 🔥 TRACK CLICK (NO DUPLICATES NOW)
-        await setDoc(
-          doc(db, "clicks", clickId),
-          {
-            userId: userId,
-            campaignId: campaignId,
-            clickId: clickId,
-            createdAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
+        // 🔥 TRACK CLICK (EVERY CLICK UNIQUE NOW)
+        await addDoc(collection(db, "clicks"), {
+          userId: userId,
+          campaignId: campaignId,
+          clickId: clickId,
+          createdAt: serverTimestamp(),
+        });
 
         console.log("✅ Click tracked:", { userId, campaignId, clickId });
         console.log("🔗 Redirecting to:", finalUrl);
