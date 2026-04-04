@@ -5,10 +5,7 @@ import toast from "react-hot-toast";
 import {
   doc,
   getDoc,
-  updateDoc,
-  increment,
-  addDoc,
-  collection,
+  setDoc, // ✅ updated
   serverTimestamp,
 } from "firebase/firestore";
 
@@ -38,7 +35,7 @@ export default function Redirect() {
 
         const data = snap.data();
 
-        // 🔥 TRACKING PARAM (dynamic support)
+        // 🔥 TRACKING PARAM
         const trackingParam = data.trackingParam || "subid";
 
         const separator = data.url.includes("?") ? "&" : "?";
@@ -48,14 +45,17 @@ export default function Redirect() {
 
         const finalUrl = `${data.url}${separator}${trackingParam}=${subidValue}`;
 
-       
-        // 🔥 TRACK USER CLICK (WITH clickId)
-        await addDoc(collection(db, "clicks"), {
-          userId: userId,
-          campaignId: campaignId,
-          clickId: clickId, // ✅ NEW
-          createdAt: serverTimestamp(),
-        });
+        // 🔥 TRACK CLICK (NO DUPLICATES NOW)
+        await setDoc(
+          doc(db, "clicks", clickId),
+          {
+            userId: userId,
+            campaignId: campaignId,
+            clickId: clickId,
+            createdAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
 
         console.log("✅ Click tracked:", { userId, campaignId, clickId });
         console.log("🔗 Redirecting to:", finalUrl);

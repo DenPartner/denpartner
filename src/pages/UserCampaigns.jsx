@@ -28,7 +28,7 @@ export default function UserCampaigns() {
 };
   const [categories, setCategories] = useState(["All"]);
   const [sort, setSort] = useState("");
-  
+  const [earnFilter, setEarnFilter] = useState("All");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -84,7 +84,11 @@ export default function UserCampaigns() {
       c.title.toLowerCase().includes(search.toLowerCase())
     );
   }
- 
+ if (earnFilter !== "All") {
+  filteredCampaigns = filteredCampaigns.filter(
+    (c) => c.earnType === earnFilter
+  );
+}
 
   if (sort === "low") {
   filteredCampaigns.sort((a, b) => {
@@ -154,15 +158,6 @@ else if (sort === "offer50") {
   if (!userId) return;
 
 const clickId = Date.now().toString();
-
-// 🔥 SAVE CLICK (IMPORTANT)
-addDoc(collection(db, "clicks"), {
-  clickId,
-  userId,
-  campaignId: item.id,
-  createdAt: serverTimestamp(),
-});
-
 const link = `${window.location.origin}/r/${item.id}-${userId}-${clickId}`;
 
   let finalPrice = item.price;
@@ -306,6 +301,16 @@ ${link}
 <option value="offer20">20%+ OFF</option>
 <option value="offer50">50%+ OFF</option>
           </select>
+          <select
+  value={earnFilter}
+  onChange={(e) => setEarnFilter(e.target.value)}
+  className="p-2 border rounded-md flex-1"
+>
+  <option value="All">All Earn Types</option>
+  <option value="order">Order</option>
+  <option value="click">Click</option>
+  <option value="install">Install</option>
+</select>
       
 
         </div>
@@ -409,10 +414,14 @@ if (item.offer) {
 
                 {/* ✅ ONLY CHANGE HERE */}
                 <p className="text-primary font-bold mb-3">
-                  {item.earnType === "order" && `Earn upto ${item.commissionValue}% (per order)`}
-                  {item.earnType === "click" && `Earn upto ₹${earn} (per click)`}
-                  {item.earnType === "install" && `Earn upto ₹${earn} (per install)`}
-                </p>
+  {item.commissionType === "percentage" && 
+    `Earn upto ${item.commissionValue}% (per ${item.earnType})`
+  }
+
+  {item.commissionType === "fixed" && 
+    `Earn upto ₹${item.commissionValue} (per ${item.earnType})`
+  }
+</p>
 
                 <div className="flex gap-2">
                   <button
