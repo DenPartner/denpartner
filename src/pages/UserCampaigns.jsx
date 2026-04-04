@@ -275,12 +275,12 @@ ${link}
           className="w-full mb-3 p-2 border rounded-md"
         />
 
-        <div className="flex gap-2 mb-4">
+        <div className="grid grid-cols-3 gap-2 mb-4">
 
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="p-2 border rounded-md flex-1"
+            className="p-2 border rounded-md w-full text-sm"
           >
             {categories.map((c, i) => (
               <option key={i}>{c}</option>
@@ -290,7 +290,7 @@ ${link}
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="p-2 border rounded-md flex-1"
+            className="p-2 border rounded-md w-full text-sm"
           >
             <option value="">Sort</option>
             <option value="latest">Latest First</option>
@@ -304,7 +304,7 @@ ${link}
           <select
   value={earnFilter}
   onChange={(e) => setEarnFilter(e.target.value)}
-  className="p-2 border rounded-md flex-1"
+  className="p-2 border rounded-md w-full text-sm"
 >
   <option value="All">All Earn Types</option>
   <option value="order">Order</option>
