@@ -23,7 +23,7 @@ export default function Hero() {
 
           {/* POINTS */}
           <div className="mt-5 space-y-2 text-sm md:text-base text-textSub">
-            <p>✔ Flipkart, Amazon & more</p>
+            <p>✔ Nykaa, Boat & more</p>
             <p>✔ Work from home flexibility</p>
             <p>✔ No investment required</p>
           </div>
